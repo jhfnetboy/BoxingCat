@@ -10,19 +10,16 @@ type LandmarkCallback = (result: PoseLandmarkerResult) => void;
 export function usePoseDetection(onLandmarks: LandmarkCallback) {
   const landmarkerRef = useRef<PoseLandmarker | null>(null);
   const animFrameRef = useRef<number>(0);
+  const stoppedRef = useRef(true);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Load MediaPipe model once
   useEffect(() => {
     let cancelled = false;
-
     async function init() {
       const vision = await FilesetResolver.forVisionTasks(
         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
       );
-
       if (cancelled) return;
-
       const landmarker = await PoseLandmarker.createFromOptions(vision, {
         baseOptions: {
           modelAssetPath:
@@ -35,30 +32,26 @@ export function usePoseDetection(onLandmarks: LandmarkCallback) {
         minPosePresenceConfidence: 0.5,
         minTrackingConfidence: 0.5,
       });
-
-      if (!cancelled) {
-        landmarkerRef.current = landmarker;
-      }
+      if (!cancelled) landmarkerRef.current = landmarker;
     }
-
     init();
-
-    return () => {
-      cancelled = true;
-      landmarkerRef.current?.close();
-    };
+    return () => { cancelled = true; landmarkerRef.current?.close(); };
   }, []);
 
-  // Detection loop
   const startDetection = useCallback(
     (video: HTMLVideoElement) => {
+      stoppedRef.current = false;
       videoRef.current = video;
 
       const detect = () => {
+        if (stoppedRef.current) return; // hard stop
+
         const lm = landmarkerRef.current;
         const v = videoRef.current;
         if (!lm || !v || v.readyState < 2) {
-          animFrameRef.current = requestAnimationFrame(detect);
+          if (!stoppedRef.current) {
+            animFrameRef.current = requestAnimationFrame(detect);
+          }
           return;
         }
 
@@ -67,17 +60,21 @@ export function usePoseDetection(onLandmarks: LandmarkCallback) {
           onLandmarks(result);
         }
 
-        animFrameRef.current = requestAnimationFrame(detect);
+        if (!stoppedRef.current) {
+          animFrameRef.current = requestAnimationFrame(detect);
+        }
       };
 
       detect();
     },
-    [onLandmarks]
+    [onLandmarks],
   );
 
   const stopDetection = useCallback(() => {
+    stoppedRef.current = true;
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = 0;
     }
   }, []);
 

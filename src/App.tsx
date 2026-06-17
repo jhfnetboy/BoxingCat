@@ -45,6 +45,7 @@ function App() {
   const prevLandmarksRef = useRef<Landmark[] | null>(null);
   const punchCountRef = useRef(0);
   const frameIdxRef = useRef(0);
+  const wasPunchingRef = useRef(false); // rising-edge detection
   const [debug, setDebug] = useState({
     move: "idle" as string, rightVel: 0, leftVel: 0,
     rightAngle: 0, leftAngle: 0, frameScore: 0, punchCount: 0,
@@ -79,20 +80,21 @@ function App() {
     const fs = move !== "idle" ? Math.round((poseScore + powerScore) / 2) : 0;
     setTotalScore((s) => s + fs);
 
-    if (fs > 20) {
+    // Rising-edge detection: only count punch when it BEGINS
+    // (transition from idle to active), not every qualifying frame
+    const isPunching = fs > 20;
+    if (isPunching && !wasPunchingRef.current) {
       punchCountRef.current++;
       const p = punchCountRef.current;
       if (p % 10 === 0) { setCatFood((f) => f + 1); setMessage(`🥊 10 punches! +1 🍖`); }
       setCombo((prev) => { const n = [...prev, move]; return n.length > 12 ? n.slice(-12) : n; });
-      setDebug({ move, rightVel: rv, leftVel: lv, rightAngle: ra, leftAngle: la, frameScore: fs, punchCount: p });
-    } else {
-      setDebug({ move, rightVel: rv, leftVel: lv, rightAngle: ra, leftAngle: la, frameScore: fs, punchCount: punchCountRef.current });
+      if (frameIdxRef.current % 5 === 0) {
+        console.log(`[Pose] 🥊 PUNCH #${p} move=${move} fs=${fs}`);
+      }
     }
+    wasPunchingRef.current = isPunching;
 
-    // Log every 30 frames for debugging
-    if (frameIdxRef.current % 30 === 0) {
-      console.log(`[Pose] move=${move} rv=${rv.toFixed(4)} lv=${lv.toFixed(4)} ra=${Math.round(ra)}° fs=${fs} pc=${punchCountRef.current}`);
-    }
+    setDebug({ move, rightVel: rv, leftVel: lv, rightAngle: ra, leftAngle: la, frameScore: fs, punchCount: punchCountRef.current });
 
     prevLandmarksRef.current = cur;
   }, []); // isTrainingRef used instead of isTraining state
@@ -130,11 +132,6 @@ function App() {
     try { await invoke("open_training_window"); } catch (e) { console.error(e); }
   }, []);
 
-  const handleCloseTraining = useCallback(async () => {
-    handleStopTraining();
-    try { await invoke("close_training_window"); } catch { /* */ }
-  }, [handleStopTraining]);
-
   // ── Right-click context menu ────────────────────────────────────────
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -168,11 +165,7 @@ function App() {
   if (isTrainingWindow) {
     return (
       <div className="training-window">
-        <div className="tw-header">
-          <h2>🥊 Boxing Training</h2>
-          <button className="tw-close-btn" onClick={handleCloseTraining}>✕ Close</button>
-        </div>
-        <div className="tw-body">
+        <div className="tw-body" style={{ paddingTop: 12 }}>
           <div className="tw-left">
             <CameraView videoRef={videoRef} isReady={camReady} poseResult={poseResult}
               onStart={handleStartTraining} onStop={handleStopTraining} isTraining={isTraining} />
