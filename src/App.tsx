@@ -84,16 +84,17 @@ function App() {
     const ra = angle3(cur[12], cur[14], cur[16]);
     const la = angle3(cur[11], cur[13], cur[15]);
 
-    // ── Pure velocity-based punch detection ────────────────────
-    // Exactly the logic from v0.0.2 (commit 15678c1) that worked.
-    const PUNCH_VELOCITY = 0.08;
-    const PUNCH_COOLDOWN = 45;
+    // ── Classifier-based punch detection ────────────────────────
+    // The classifier (classifyBoxingMove) checks BOTH speed AND geometry.
+    // Only jab/cross/hook/uppercut/slip geometry passes. Standing up
+    // or random waving has speed but wrong geometry → filtered out.
+    const PUNCH_COOLDOWN = 40;
     const maxVel = Math.max(rv, lv);
 
     if (punchCooldownRef.current > 0) punchCooldownRef.current--;
 
-    const isPunching = maxVel > PUNCH_VELOCITY;
-    if (isPunching && !wasPunchingRef.current && punchCooldownRef.current === 0) {
+    const isPunch = move !== "idle"; // classifier says it's a boxing move
+    if (isPunch && !wasPunchingRef.current && punchCooldownRef.current === 0) {
       punchCountRef.current++;
       punchCooldownRef.current = PUNCH_COOLDOWN;
       const p = punchCountRef.current;
@@ -101,10 +102,10 @@ function App() {
       setTotalScore((s) => s + fs);
       playPunchSound();
       if (p % 10 === 0) { setCatFood((f) => f + 1); setMessage(`🥊 10 punches! +1 🍖`); playComboSound(); }
-      setCombo((prev) => { const n = [...prev, move !== "idle" ? move : "jab"]; return n.length > 12 ? n.slice(-12) : n; });
-      console.log(`🥊 PUNCH #${p} maxVel=${maxVel.toFixed(3)} score=${fs}`);
+      setCombo((prev) => { const n = [...prev, move]; return n.length > 12 ? n.slice(-12) : n; });
+      console.log(`🥊 PUNCH #${p} move=${move} maxVel=${maxVel.toFixed(3)} angle=${Math.round(ra)}° score=${fs}`);
     }
-    wasPunchingRef.current = isPunching;
+    wasPunchingRef.current = isPunch;
 
     // Throttle UI updates to every 5 frames (avoids React overload)
     if (frameIdxRef.current % 5 === 0) {

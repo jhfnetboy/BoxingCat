@@ -30,17 +30,20 @@ export function velocity(prev: Landmark | undefined, curr: Landmark): number {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-// ── Thresholds (tuned to reject camera noise / breathing) ─────────────
+// ── Thresholds (classifier as primary detector) ────────────────────────
+// Key insight: a real punch has BOTH high speed AND correct geometry.
+// Sitting still: vel ~0.01-0.03. Standing up: all points move together.
+// Only a punch: specific arm extension + fast wrist + shoulder rotation.
 
-const JAB_SPEED = 0.06;          // fast wrist movement only
-const JAB_ARM_ANGLE_MIN = 100;   // arm extension for jab
-const HOOK_SPEED = 0.05;
-const HOOK_ARM_ANGLE_LO = 35;
-const HOOK_ARM_ANGLE_HI = 145;
-const HOOK_SHOULDER_ROT = 8;
-const UPPERCUT_RISE = 0.03;
-const SLIP_HEAD = 0.03;
-const ANY_MOVEMENT = 999;        // disabled — must match a specific move
+const JAB_SPEED = 0.08;          // must be a real punch, not a wave
+const JAB_ARM_ANGLE_MIN = 110;   // arm must be extending (not bent)
+const HOOK_SPEED = 0.07;
+const HOOK_ARM_ANGLE_LO = 40;    // arm bent for hook
+const HOOK_ARM_ANGLE_HI = 140;
+const HOOK_SHOULDER_ROT = 10;    // shoulder must rotate for hook
+const UPPERCUT_RISE = 0.04;      // wrist must move upward
+const SLIP_HEAD = 0.04;          // head must actually move
+const ANY_MOVEMENT = 999;        // disabled — require specific boxing move
 
 // ── Classifier ──────────────────────────────────────────────────────────
 
