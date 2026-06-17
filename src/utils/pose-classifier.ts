@@ -30,16 +30,17 @@ function velocity(prev: Landmark | undefined, curr: Landmark): number {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-// ── Thresholds ──────────────────────────────────────────────────────────
+// ── Thresholds (lenient for MVP — tune with real data later) ──────────
 
-const JAB_SPEED = 0.08;
-const JAB_ARM_ANGLE_MIN = 130;  // near-straight arm
-const HOOK_SPEED = 0.06;
-const HOOK_ARM_ANGLE_LO = 50;
-const HOOK_ARM_ANGLE_HI = 130;
-const HOOK_SHOULDER_ROT = 15;
-const UPPERCUT_RISE = 0.03;    // wrist moving upward significantly
-const SLIP_HEAD = 0.04;        // head lateral offset
+const JAB_SPEED = 0.02;          // wrist velocity for a punch
+const JAB_ARM_ANGLE_MIN = 100;   // arm extension for jab
+const HOOK_SPEED = 0.015;
+const HOOK_ARM_ANGLE_LO = 35;
+const HOOK_ARM_ANGLE_HI = 145;
+const HOOK_SHOULDER_ROT = 8;
+const UPPERCUT_RISE = 0.01;
+const SLIP_HEAD = 0.015;
+const ANY_MOVEMENT = 0.01;       // any wrist movement → base score
 
 // ── Classifier ──────────────────────────────────────────────────────────
 
@@ -110,6 +111,11 @@ export function classifyBoxingMove(
     return "slip";
   }
 
+  // Any significant arm movement → at least a "jab" (base score)
+  if (rightWristVel > ANY_MOVEMENT || leftWristVel > ANY_MOVEMENT) {
+    return "jab"; // default punch
+  }
+
   return "idle";
 }
 
@@ -125,30 +131,46 @@ export function scorePose(
   landmarks: Landmark[],
   move: BoxingMove,
 ): ScoreFrame {
+  // Base score for any non-idle movement
   if (move === "idle") return { move, poseScore: 0, powerScore: 0 };
 
-  // Pose score: how "tight" the form is (simplified)
   const R_SHOULDER = 12, R_ELBOW = 14, R_WRIST = 16;
-  const armAngle = angle3(landmarks[R_SHOULDER], landmarks[R_ELBOW], landmarks[R_WRIST]);
+  const L_SHOULDER = 11, L_ELBOW = 13, L_WRIST = 15;
 
-  let poseScore = 50;
+  const rightArmAngle = angle3(landmarks[R_SHOULDER], landmarks[R_ELBOW], landmarks[R_WRIST]);
+  const leftArmAngle = angle3(landmarks[L_SHOULDER], landmarks[L_ELBOW], landmarks[L_WRIST]);
+
+  let poseScore = 40; // base score for any movement
+
   switch (move) {
     case "jab":
-      // Jab wants near-straight arm (150-180°)
-      poseScore = armAngle > 150 ? 100 : Math.max(0, 100 - (150 - armAngle));
+      // Standard jab: arm near-straight gives bonus
+      if (rightArmAngle > 120) poseScore = 70;
+      if (rightArmAngle > 150) poseScore = 90;
+      break;
+    case "cross":
+      if (leftArmAngle > 120) poseScore = 70;
+      if (leftArmAngle > 150) poseScore = 90;
       break;
     case "hook":
-      // Hook wants ~90° arm bend
-      poseScore = Math.abs(armAngle - 90) < 20 ? 100 : Math.max(0, 100 - Math.abs(armAngle - 90) * 1.5);
+      // Hook: arm ~90° is ideal
+      const hookDeviation = Math.abs(rightArmAngle - 90);
+      if (hookDeviation < 30) poseScore = 70;
+      if (hookDeviation < 15) poseScore = 90;
+      break;
+    case "uppercut":
+      poseScore = 80;
+      break;
+    case "slip":
+      poseScore = 60;
       break;
     default:
-      poseScore = 70;
+      poseScore = 40;
   }
 
-  // Power score: based on wrist velocity (simplified as relative measure)
-  const powerScore = Math.min(100, poseScore * 0.8);
+  const powerScore = Math.round(poseScore * 0.75);
 
-  return { move, poseScore: Math.round(poseScore), powerScore: Math.round(powerScore) };
+  return { move, poseScore: Math.round(poseScore), powerScore };
 }
 
 // Move display names

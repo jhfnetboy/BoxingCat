@@ -43,12 +43,7 @@
     ],
     "macOS": {
       "minimumSystemVersion": "12.0",
-      "entitlements": {
-        "com.apple.security.device.camera": true
-      },
-      "infoPlist": {
-        "NSCameraUsageDescription": "BoxingCat needs camera access to detect your boxing moves and give you score!"
-      }
+      "infoPlist": "Info.plist"
     }
   }
 }

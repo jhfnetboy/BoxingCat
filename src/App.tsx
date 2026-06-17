@@ -32,6 +32,8 @@ function App() {
   const [combo, setCombo] = useState<BoxingMove[]>([]);
   const [poseResult, setPoseResult] = useState<PoseLandmarkerResult | null>(null);
   const prevLandmarksRef = useRef<Landmark[] | null>(null);
+  const frameCountRef = useRef(0);
+  const lastPunchFrameRef = useRef(0);
 
   // Camera
   const { videoRef, isReady: camReady, error: camError, startCamera, stopCamera } = useCamera();
@@ -58,10 +60,15 @@ function App() {
         const frameScore = Math.round((poseScore + powerScore) / 2);
         setTotalScore((s) => s + frameScore);
 
-        // Accumulate cat food every ~30 score points
-        if ((totalScore + frameScore) % 30 < frameScore) {
+        // Give cat food on first punch frame (with 15-frame cooldown)
+        frameCountRef.current++;
+        if (
+          frameCountRef.current - lastPunchFrameRef.current > 15 &&
+          frameScore > 10
+        ) {
+          lastPunchFrameRef.current = frameCountRef.current;
           setCatFood((f) => f + 1);
-          setMessage(`🥊 ${MOVE_LABELS[move]}! +1 Cat Food!`);
+          setMessage(`🥊 ${MOVE_LABELS[move]}! +1 Cat Food! (+${frameScore}pts)`);
         }
 
         // Track combo
@@ -73,7 +80,7 @@ function App() {
 
       prevLandmarksRef.current = currentLandmarks;
     },
-    [isTraining, totalScore]
+    [isTraining]
   );
 
   const { startDetection, stopDetection } = usePoseDetection(onLandmarks);
