@@ -1,5 +1,3 @@
-/// <reference types="vite/client" />
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -20,26 +18,21 @@ import {
 import type { PoseLandmarkerResult } from "@mediapipe/tasks-vision";
 import "./styles/cat.css";
 import "./styles/fitness.css";
+import "./styles/cat-house.css";
 
 type CatState = "idle" | "walking" | "sleeping" | "excited" | "training";
 
 function App() {
-  // ── Window detection ─────────────────────────────────────────────────
   const [isTrainingWindow, setIsTrainingWindow] = useState(false);
   useEffect(() => {
-    try {
-      const w = getCurrentWindow();
-      setIsTrainingWindow(w.label === "training");
-    } catch {
-      // Running in browser (pnpm dev without Tauri)
-    }
+    try { setIsTrainingWindow(getCurrentWindow().label === "training"); } catch { /* */ }
   }, []);
 
-  // ── Shared state ─────────────────────────────────────────────────────
   const [catState, setCatState] = useState<CatState>("idle");
   const [catFood, setCatFood] = useState(0);
   const [agility] = useState(10);
-  const [message, setMessage] = useState("🐱 Meow! Welcome to BoxingCat!");
+  const [message, setMessage] = useState("🐱 Meow!");
+  const [showMenu, setShowMenu] = useState(false);
 
   // ── Training state ──────────────────────────────────────────────────
   const [isTraining, setIsTraining] = useState(false);
@@ -50,209 +43,160 @@ function App() {
   const [showTutorial, setShowTutorial] = useState(true);
   const prevLandmarksRef = useRef<Landmark[] | null>(null);
   const punchCountRef = useRef(0);
+  const frameIdxRef = useRef(0);
   const [debug, setDebug] = useState({
-    move: "idle" as string,
-    rightVel: 0, leftVel: 0,
-    rightAngle: 0, leftAngle: 0,
-    frameScore: 0, punchCount: 0,
+    move: "idle" as string, rightVel: 0, leftVel: 0,
+    rightAngle: 0, leftAngle: 0, frameScore: 0, punchCount: 0,
   });
 
-  // Camera + Pose (only used in training window)
   const { videoRef, isReady: camReady, error: camError, startCamera, stopCamera } = useCamera();
 
-  const onLandmarks = useCallback(
-    (result: PoseLandmarkerResult) => {
-      setPoseResult(result);
-      if (!isTraining) return;
+  const onLandmarks = useCallback((result: PoseLandmarkerResult) => {
+    setPoseResult(result);
+    frameIdxRef.current++;
 
-      const landmarks = result.landmarks[0];
-      if (!landmarks || landmarks.length < 17) return;
+    if (!isTraining) return;
 
-      const currentLandmarks = landmarks as unknown as Landmark[];
-      const prev = prevLandmarksRef.current;
-      const move = classifyBoxingMove(currentLandmarks, prev);
-      setCurrentMove(move);
+    const lm = result.landmarks[0];
+    if (!lm || lm.length < 17) {
+      // Log when no person detected
+      if (frameIdxRef.current % 60 === 0) console.log("[Pose] No person in frame");
+      return;
+    }
 
-      const rWrist = currentLandmarks[16];
-      const lWrist = currentLandmarks[15];
-      const rightVel = prev ? velocity(prev[16], rWrist) : 0;
-      const leftVel = prev ? velocity(prev[15], lWrist) : 0;
-      const rightAngle = angle3(currentLandmarks[12], currentLandmarks[14], rWrist);
-      const leftAngle = angle3(currentLandmarks[11], currentLandmarks[13], lWrist);
+    const cur = lm as unknown as Landmark[];
+    const prev = prevLandmarksRef.current;
+    const move = classifyBoxingMove(cur, prev);
+    setCurrentMove(move);
 
-      const { poseScore, powerScore } = scorePose(currentLandmarks, move);
-      const frameScore = move !== "idle" ? Math.round((poseScore + powerScore) / 2) : 0;
-      setTotalScore((s) => s + frameScore);
+    const rv = prev ? velocity(prev[16], cur[16]) : 0;
+    const lv = prev ? velocity(prev[15], cur[15]) : 0;
+    const ra = angle3(cur[12], cur[14], cur[16]);
+    const la = angle3(cur[11], cur[13], cur[15]);
 
-      if (frameScore > 20) {
-        punchCountRef.current++;
-        const p = punchCountRef.current;
-        if (p % 10 === 0) {
-          setCatFood((f) => f + 1);
-          setMessage(`🥊 10 punches! +1 🍖`);
-        }
-        setCombo((prev) => {
-          const next = [...prev, move];
-          return next.length > 12 ? next.slice(-12) : next;
-        });
-        setDebug({ move, rightVel, leftVel, rightAngle, leftAngle, frameScore, punchCount: p });
-      } else {
-        setDebug({ move, rightVel, leftVel, rightAngle, leftAngle, frameScore, punchCount: punchCountRef.current });
-      }
+    const { poseScore, powerScore } = scorePose(cur, move);
+    const fs = move !== "idle" ? Math.round((poseScore + powerScore) / 2) : 0;
+    setTotalScore((s) => s + fs);
 
-      prevLandmarksRef.current = currentLandmarks;
-    },
-    [isTraining],
-  );
+    if (fs > 20) {
+      punchCountRef.current++;
+      const p = punchCountRef.current;
+      if (p % 10 === 0) { setCatFood((f) => f + 1); setMessage(`🥊 10 punches! +1 🍖`); }
+      setCombo((prev) => { const n = [...prev, move]; return n.length > 12 ? n.slice(-12) : n; });
+      setDebug({ move, rightVel: rv, leftVel: lv, rightAngle: ra, leftAngle: la, frameScore: fs, punchCount: p });
+    } else {
+      setDebug({ move, rightVel: rv, leftVel: lv, rightAngle: ra, leftAngle: la, frameScore: fs, punchCount: punchCountRef.current });
+    }
+
+    // Log every 30 frames for debugging
+    if (frameIdxRef.current % 30 === 0) {
+      console.log(`[Pose] move=${move} rv=${rv.toFixed(4)} lv=${lv.toFixed(4)} ra=${Math.round(ra)}° fs=${fs} pc=${punchCountRef.current}`);
+    }
+
+    prevLandmarksRef.current = cur;
+  }, [isTraining]);
 
   const { startDetection, stopDetection } = usePoseDetection(onLandmarks);
-
-  // ── Training flow ───────────────────────────────────────────────────
 
   const handleStartTraining = useCallback(async () => {
     await startCamera();
     setIsTraining(true);
-    setCurrentMove("idle");
-    setTotalScore(0);
-    setCombo([]);
-    punchCountRef.current = 0;
-    setMessage("🥊 Let's box! Follow the rhythm!");
+    setCurrentMove("idle"); setTotalScore(0); setCombo([]);
+    punchCountRef.current = 0; frameIdxRef.current = 0;
+    setMessage("🥊 Let's box!");
+    console.log("[Pose] Training started, waiting for camera...");
     setTimeout(() => {
-      if (videoRef.current) startDetection(videoRef.current);
+      if (videoRef.current) {
+        console.log("[Pose] Starting detection, video ready:", videoRef.current.readyState);
+        startDetection(videoRef.current);
+      } else {
+        console.log("[Pose] ERROR: videoRef.current is null!");
+      }
     }, 1000);
   }, [startCamera, startDetection, videoRef]);
 
   const handleStopTraining = useCallback(() => {
-    stopDetection();
-    stopCamera();
-    setIsTraining(false);
-    setCatState("idle");
-    setCurrentMove("idle");
-    setMessage(`🏆 Done! Score: ${totalScore} | Punches: ${punchCountRef.current}`);
+    stopDetection(); stopCamera(); setIsTraining(false);
+    setCatState("idle"); setCurrentMove("idle");
+    setMessage(`🏆 Score: ${totalScore} | Punches: ${punchCountRef.current}`);
+    console.log(`[Pose] Training stopped. Final score=${totalScore} punches=${punchCountRef.current}`);
   }, [stopDetection, stopCamera, totalScore]);
 
-  // ── Window actions ──────────────────────────────────────────────────
-
   const handleOpenTraining = useCallback(async () => {
-    try {
-      await invoke("open_training_window");
-    } catch (e) {
-      console.error("Failed to open training window:", e);
-    }
+    try { await invoke("open_training_window"); } catch (e) { console.error(e); }
   }, []);
 
   const handleCloseTraining = useCallback(async () => {
     handleStopTraining();
-    try {
-      await invoke("close_training_window");
-    } catch { /* ignore */ }
+    try { await invoke("close_training_window"); } catch { /* */ }
   }, [handleStopTraining]);
 
-  const handleQuit = useCallback(async () => {
-    try { await invoke("hide_main_window"); } catch { /* */ }
+  // ── Right-click context menu ────────────────────────────────────────
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowMenu((v) => !v);
   }, []);
 
-  // ── Cat interaction ─────────────────────────────────────────────────
+  const handleMenuAction = useCallback((action: string) => {
+    setShowMenu(false);
+    switch (action) {
+      case "training": handleOpenTraining(); break;
+      case "idle": setCatState("idle"); break;
+      case "walking": setCatState("walking"); break;
+      case "excited": setCatState("excited"); break;
+      case "sleeping": setCatState("sleeping"); break;
+      case "hide": invoke("hide_main_window").catch(() => {}); break;
+    }
+  }, [handleOpenTraining]);
 
-  const handleCatClick = useCallback(() => {
-    setCatState("excited");
-    setCatFood((f) => f + 1);
-    setMessage("🐱 Meow! +1 Cat Food!");
-    setTimeout(() => setCatState("idle"), 2000);
-  }, []);
+  useEffect(() => { if (showMenu) { const t = setTimeout(() => setShowMenu(false), 4000); return () => clearTimeout(t); } }, [showMenu]);
 
-  const handleTestBackend = useCallback(async () => {
-    try {
-      const result = await invoke<string>("greet", { name: "BoxingCat" });
-      setMessage(result);
-    } catch { setMessage("Backend not ready"); }
-  }, []);
-
-  // Auto-idle animation
+  // Auto-idle
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCatState((prev) => {
-        if (prev === "sleeping") return prev;
-        const rand = Math.random();
-        if (rand < 0.3) return "walking";
-        if (rand < 0.5) return "idle";
-        if (rand < 0.6) return "excited";
-        return prev;
-      });
-      setTimeout(() => setCatState((p) => (p !== "sleeping" ? "idle" : p)), 3000);
+    const i = setInterval(() => {
+      setCatState((p) => { if (p === "sleeping") return p; const r = Math.random(); if (r < 0.3) return "walking"; if (r < 0.5) return "idle"; if (r < 0.6) return "excited"; return p; });
+      setTimeout(() => setCatState((p2) => (p2 !== "sleeping" ? "idle" : p2)), 3000);
     }, 10000);
-    return () => clearInterval(interval);
+    return () => clearInterval(i);
   }, []);
 
-  // ── RENDER ───────────────────────────────────────────────────────────
-
-  // ─── TRAINING WINDOW ─────────────────────────────────────────────────
+  // ── TRAINING WINDOW RENDER ───────────────────────────────────────────
   if (isTrainingWindow) {
     return (
       <div className="training-window">
         <div className="tw-header">
           <h2>🥊 Boxing Training</h2>
-          <button className="tw-close-btn" onClick={handleCloseTraining}>
-            ✕ Close
-          </button>
+          <button className="tw-close-btn" onClick={handleCloseTraining}>✕ Close</button>
         </div>
-
         <div className="tw-body">
-          {/* Left: Camera + Controls */}
           <div className="tw-left">
-            <CameraView
-              videoRef={videoRef}
-              isReady={camReady}
-              poseResult={poseResult}
-              onStart={handleStartTraining}
-              onStop={handleStopTraining}
-              isTraining={isTraining}
-            />
+            <CameraView videoRef={videoRef} isReady={camReady} poseResult={poseResult}
+              onStart={handleStartTraining} onStop={handleStopTraining} isTraining={isTraining} />
             {camError && <p className="cam-err">{camError}</p>}
-
-            {/* Training HUD */}
             <div className="training-hud">
-              <div className="training-stat">
-                <span className="training-stat-value">{totalScore}</span>
-                <span className="training-stat-label">Score</span>
-              </div>
+              <div className="training-stat"><span className="training-stat-value">{totalScore}</span><span className="training-stat-label">Score</span></div>
               <div className="move-indicator">{MOVE_LABELS[currentMove]}</div>
-              <div className="training-stat">
-                <span className="training-stat-value">{catFood}</span>
-                <span className="training-stat-label">Cat Food</span>
-              </div>
-              <div className="training-stat">
-                <span className="training-stat-value">{debug.punchCount}</span>
-                <span className="training-stat-label">Punches</span>
-              </div>
+              <div className="training-stat"><span className="training-stat-value">{catFood}</span><span className="training-stat-label">Cat Food</span></div>
+              <div className="training-stat"><span className="training-stat-value">{debug.punchCount}</span><span className="training-stat-label">Punches</span></div>
             </div>
-
-            {/* Combo feed */}
-            <div className="combo-feed">
-              {combo.map((m, i) => (
-                <span key={i} className="combo-item">{MOVE_LABELS[m]}</span>
-              ))}
-            </div>
+            <div className="combo-feed">{combo.map((m, i) => <span key={i} className="combo-item">{MOVE_LABELS[m]}</span>)}</div>
           </div>
-
-          {/* Right: Debug + Tutorial */}
           <div className="tw-right">
             <button className="tutorial-toggle" onClick={() => setShowTutorial((v) => !v)}>
               {showTutorial ? "✕ Hide Tutorial" : "📖 Tutorial / 教程"}
             </button>
             {showTutorial && <Tutorial />}
-
-            {/* Debug Panel */}
             <div className="debug-panel">
-              <div className="debug-title">🔍 Live Detection</div>
+              <div className="debug-title">🔍 Live Detection (logs in console)</div>
               <div className="debug-grid">
                 <span>Move:</span><span className={debug.move !== "idle" ? "debug-hit" : ""}>{debug.move}</span>
-                <span>Score/frame:</span><span>{debug.frameScore}</span>
-                <span>R-Wrist vel:</span><span>{debug.rightVel.toFixed(4)}</span>
-                <span>L-Wrist vel:</span><span>{debug.leftVel.toFixed(4)}</span>
-                <span>R-Arm angle:</span><span>{Math.round(debug.rightAngle)}°</span>
-                <span>L-Arm angle:</span><span>{Math.round(debug.leftAngle)}°</span>
-                <span>Punch count:</span><span>{debug.punchCount}</span>
+                <span>Frame#:</span><span>{frameIdxRef.current}</span>
+                <span>Score/f:</span><span>{debug.frameScore}</span>
+                <span>R-Vel:</span><span>{debug.rightVel.toFixed(4)}</span>
+                <span>L-Vel:</span><span>{debug.leftVel.toFixed(4)}</span>
+                <span>R-Ang:</span><span>{Math.round(debug.rightAngle)}°</span>
+                <span>L-Ang:</span><span>{Math.round(debug.leftAngle)}°</span>
+                <span>Punches:</span><span>{debug.punchCount}</span>
               </div>
             </div>
           </div>
@@ -261,24 +205,43 @@ function App() {
     );
   }
 
-  // ─── CAT WINDOW (main) ───────────────────────────────────────────────
+  // ── CAT WINDOW RENDER ────────────────────────────────────────────────
   return (
-    <div className="app-container">
-      <button className="close-btn" onClick={handleQuit} title="Close / 关闭">
-        ✕
-      </button>
-      <CatViewer state={catState} onClick={handleCatClick} message={message} />
-      <div className="hud">
-        <span className="hud-item">🍖 {catFood}</span>
-        <span className="hud-item">⚡ {agility}</span>
+    <div className="app-container" onContextMenu={handleContextMenu} onClick={() => setShowMenu(false)}>
+      {/* HUD: cat food + agility, top-right */}
+      <div className="cat-hud">
+        <span className="hud-badge">🍖 {catFood}</span>
+        <span className="hud-badge">⚡ {agility}</span>
       </div>
-      <div className="dev-controls">
-        <button onClick={handleOpenTraining}>🥊 Training</button>
-        <button onClick={() => setCatState("idle")}>Idle</button>
-        <button onClick={() => setCatState("walking")}>Walk</button>
-        <button onClick={() => setCatState("excited")}>Excited</button>
-        <button onClick={handleTestBackend}>Test</button>
+
+      {/* The cat — positioned left side */}
+      <div className="cat-area" onClick={(e) => { e.stopPropagation(); setCatState("excited"); setCatFood((f) => f + 1); setMessage("🐱 Meow! +1 🍖"); setTimeout(() => setCatState("idle"), 2000); }}>
+        <CatViewer state={catState} onClick={() => {}} message={message} />
       </div>
+
+      {/* Cat House — bottom */}
+      <div className="cat-house" onClick={(e) => e.stopPropagation()}>
+        <div className="cat-house-buttons">
+          <button className="ch-btn primary" onClick={handleOpenTraining}>🥊 Training</button>
+          <button className="ch-btn" onClick={() => setCatState("idle")}>😺 Idle</button>
+          <button className="ch-btn" onClick={() => setCatState("walking")}>🚶 Walk</button>
+          <button className="ch-btn" onClick={() => setCatState("excited")}>⭐ Excited</button>
+          <button className="ch-btn" onClick={() => setCatState("sleeping")}>😴 Sleep</button>
+        </div>
+      </div>
+
+      {/* Right-click context menu */}
+      {showMenu && (
+        <div className="context-menu" onClick={(e) => e.stopPropagation()}>
+          <div className="ctx-item" onClick={() => handleMenuAction("training")}>🥊 Training</div>
+          <div className="ctx-item" onClick={() => handleMenuAction("idle")}>😺 Idle</div>
+          <div className="ctx-item" onClick={() => handleMenuAction("walking")}>🚶 Walk</div>
+          <div className="ctx-item" onClick={() => handleMenuAction("excited")}>⭐ Excited</div>
+          <div className="ctx-item" onClick={() => handleMenuAction("sleeping")}>😴 Sleep</div>
+          <div className="ctx-sep" />
+          <div className="ctx-item" onClick={() => handleMenuAction("hide")}>👋 Hide to Dock</div>
+        </div>
+      )}
     </div>
   );
 }
