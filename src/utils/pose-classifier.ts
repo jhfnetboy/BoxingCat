@@ -34,8 +34,8 @@ export function velocity(prev: Landmark | undefined, curr: Landmark): number {
 
 // ── Elbow extension based classifier ────────────────────────────────────
 
-/** How many degrees the elbow must extend in one frame to qualify as a punch */
-const ELBOW_EXTEND_SPEED = 3.0;   // degrees per frame at 30fps = 90°/sec
+/** Degrees/frame elbow must extend. Jitter: ~2-5°/f. Real punch: ~10-20°/f. */
+const ELBOW_EXTEND_SPEED = 8.0;
 
 /** Minimum arm extension angle for a "straight" punch (jab/cross) */
 const STRAIGHT_ARM = 130;
@@ -85,11 +85,11 @@ export function classifyBoxingMove(
 
   // ── Classify based on elbow extension ────────────────────────────
 
-  // Jab/Cross: right arm extending rapidly → straight arm
-  if (rExtend > ELBOW_EXTEND_SPEED && rAngle > STRAIGHT_ARM) {
+  // Jab/Cross: arm was BENT, now extending rapidly, ending near-straight
+  if (rExtend > ELBOW_EXTEND_SPEED && rAngle > STRAIGHT_ARM && prevRAngle < 120) {
     return "jab";
   }
-  if (lExtend > ELBOW_EXTEND_SPEED && lAngle > STRAIGHT_ARM) {
+  if (lExtend > ELBOW_EXTEND_SPEED && lAngle > STRAIGHT_ARM && prevLAngle < 120) {
     return "cross";
   }
 
