@@ -85,11 +85,16 @@ export function classifyBoxingMove(
 
   // ── Classify based on elbow extension ────────────────────────────
 
-  // Jab/Cross: arm was BENT, now extending rapidly, ending near-straight
-  if (rExtend > ELBOW_EXTEND_SPEED && rAngle > STRAIGHT_ARM && prevRAngle < 120) {
+  // Jab/Cross: must complete a full punch CYCLE:
+  //   1. Arm was BENT (<100°) — starting from guard position
+  //   2. Now extending rapidly (>8°/f) — the punch motion
+  //   3. Ending near-straight (>130°) — fully extended
+  // After punch, arm must return to bent (<100°) before next punch counts.
+  // This prevents extended-arm slight rotations from triggering.
+  if (rExtend > ELBOW_EXTEND_SPEED && rAngle > STRAIGHT_ARM && prevRAngle < 100) {
     return "jab";
   }
-  if (lExtend > ELBOW_EXTEND_SPEED && lAngle > STRAIGHT_ARM && prevLAngle < 120) {
+  if (lExtend > ELBOW_EXTEND_SPEED && lAngle > STRAIGHT_ARM && prevLAngle < 100) {
     return "cross";
   }
 
