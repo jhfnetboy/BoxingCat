@@ -85,7 +85,8 @@ function App() {
     const la = angle3(cur[11], cur[13], cur[15]);
 
     // ── Velocity-based punch detection ─────────────────────────
-    const PUNCH_VELOCITY = 0.06;
+    // Sitting still: ~0.01-0.03. Slow wave: ~0.04-0.07. Real punch: ~0.10-0.30
+    const PUNCH_VELOCITY = 0.10;
     const PUNCH_COOLDOWN = 30;
     const maxVel = Math.max(rv, lv);
 
@@ -209,7 +210,7 @@ function App() {
               <div className="debug-grid">
                 <span>Move:</span><span className={debug.move !== "idle" ? "debug-hit" : ""}>{debug.move}</span>
                 <span>Frame#:</span><span>{frameIdxRef.current}</span>
-                <span>MaxVel:</span><span className={debug.maxVel > 0.06 ? "debug-hit" : ""}>{debug.maxVel.toFixed(3)}</span>
+                <span>MaxVel:</span><span className={debug.maxVel > 0.10 ? "debug-hit" : ""}>{debug.maxVel.toFixed(3)}</span>
                 <span>Score/f:</span><span>{debug.frameScore}</span>
                 <span>R-Vel:</span><span>{debug.rightVel.toFixed(4)}</span>
                 <span>L-Vel:</span><span>{debug.leftVel.toFixed(4)}</span>
