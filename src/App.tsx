@@ -47,11 +47,10 @@ function App() {
   const frameIdxRef = useRef(0);
   const wasPunchingRef = useRef(false);
   const punchCooldownRef = useRef(0);
-  const calmFramesRef = useRef(0); // consecutive frames at rest
   const [debug, setDebug] = useState({
     move: "idle" as string, rightVel: 0, leftVel: 0,
     rightAngle: 0, leftAngle: 0, frameScore: 0, punchCount: 0,
-    calmFrames: 0, maxVel: 0,
+    maxVel: 0,
   });
 
   const { videoRef, isReady: camReady, error: camError, startCamera, stopCamera } = useCamera();
@@ -85,38 +84,24 @@ function App() {
     const ra = angle3(cur[12], cur[14], cur[16]);
     const la = angle3(cur[11], cur[13], cur[15]);
 
-    // ── "Calm-before-storm" punch detection ────────────────────
-    const PUNCH_VELOCITY = 0.07;     // real punch: ~0.08-0.30
-    const CALM_VELOCITY = 0.04;      // below this = at rest
-    const REQUIRED_CALM = 8;         // brief calm before punch (filters jitter)
-    const PUNCH_COOLDOWN = 35;
+    // ── Velocity-based punch detection ─────────────────────────
+    const PUNCH_VELOCITY = 0.06;
+    const PUNCH_COOLDOWN = 30;
     const maxVel = Math.max(rv, lv);
 
     if (punchCooldownRef.current > 0) punchCooldownRef.current--;
 
-    // Track consecutive calm frames
-    if (maxVel < CALM_VELOCITY) {
-      calmFramesRef.current++;
-    } else if (maxVel > PUNCH_VELOCITY) {
-      // Only reset calm if we're actually punching hard
-      calmFramesRef.current = 0;
-    }
-
     const isPunching = maxVel > PUNCH_VELOCITY;
-    // Require: was calm → now punching → cooldown expired
-    if (isPunching && !wasPunchingRef.current &&
-        punchCooldownRef.current === 0 &&
-        calmFramesRef.current >= REQUIRED_CALM) {
+    if (isPunching && !wasPunchingRef.current && punchCooldownRef.current === 0) {
       punchCountRef.current++;
       punchCooldownRef.current = PUNCH_COOLDOWN;
-      calmFramesRef.current = 0;
       const p = punchCountRef.current;
       const fs = Math.round(maxVel * 300);
       setTotalScore((s) => s + fs);
       playPunchSound();
       if (p % 10 === 0) { setCatFood((f) => f + 1); setMessage(`🥊 10 punches! +1 🍖`); playComboSound(); }
       setCombo((prev) => { const n = [...prev, move !== "idle" ? move : "jab"]; return n.length > 12 ? n.slice(-12) : n; });
-      console.log(`🥊 PUNCH #${p} maxVel=${maxVel.toFixed(3)} calm=${REQUIRED_CALM} score=${fs}`);
+      console.log(`🥊 PUNCH #${p} maxVel=${maxVel.toFixed(3)} score=${fs}`);
     }
     wasPunchingRef.current = isPunching;
 
@@ -127,7 +112,6 @@ function App() {
         rightAngle: ra, leftAngle: la,
         frameScore: Math.round(maxVel * 300),
         punchCount: punchCountRef.current,
-        calmFrames: calmFramesRef.current,
         maxVel,
       });
     }
@@ -142,7 +126,6 @@ function App() {
     setCurrentMove("idle"); setTotalScore(0); setCombo([]);
     punchCountRef.current = 0; frameIdxRef.current = 0;
     punchCooldownRef.current = 0; wasPunchingRef.current = false;
-    calmFramesRef.current = 0;
     setMessage("🥊 Let's box!");
     playStartSound();
     console.log("[Pose] Training started, waiting for camera...");
@@ -226,11 +209,10 @@ function App() {
               <div className="debug-grid">
                 <span>Move:</span><span className={debug.move !== "idle" ? "debug-hit" : ""}>{debug.move}</span>
                 <span>Frame#:</span><span>{frameIdxRef.current}</span>
-                <span>MaxVel:</span><span className={debug.maxVel > 0.10 ? "debug-hit" : ""}>{debug.maxVel.toFixed(3)}</span>
+                <span>MaxVel:</span><span className={debug.maxVel > 0.06 ? "debug-hit" : ""}>{debug.maxVel.toFixed(3)}</span>
                 <span>Score/f:</span><span>{debug.frameScore}</span>
                 <span>R-Vel:</span><span>{debug.rightVel.toFixed(4)}</span>
                 <span>L-Vel:</span><span>{debug.leftVel.toFixed(4)}</span>
-                <span>Calm:</span><span>{debug.calmFrames}/60</span>
                 <span>Punches:</span><span>{debug.punchCount}</span>
               </div>
             </div>
