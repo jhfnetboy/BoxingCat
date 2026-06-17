@@ -1,0 +1,368 @@
+/* ── Training Window Layout ──────────────────────────────────────────── */
+
+.training-window {
+  width: 100vw;
+  height: 100vh;
+  background: #1a1a2e;
+  color: #eee;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tw-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: rgba(0,0,0,0.3);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.tw-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.tw-close-btn {
+  background: rgba(255,60,60,0.6);
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tw-close-btn:hover {
+  background: rgba(255,60,60,0.85);
+}
+
+.tw-body {
+  display: flex;
+  flex: 1;
+  gap: 16px;
+  padding: 16px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.tw-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.tw-right {
+  width: 400px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto !important;
+  height: calc(100vh - 80px);
+  padding-right: 6px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tw-right::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tw-right::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 3px;
+}
+
+.cam-err {
+  color: #f66;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* ── Camera Container (in training window) ──────────────────────────── */
+
+.camera-container {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 4/3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.camera-video-hidden {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pose-canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  flex: 1;
+}
+
+.camera-btn {
+  background: rgba(255, 100, 50, 0.85);
+  color: white;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s;
+}
+
+.camera-btn:hover {
+  background: rgba(255, 120, 60, 0.95);
+  transform: scale(1.05);
+}
+
+.camera-hint {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  margin: 0;
+}
+
+/* ── Training HUD ────────────────────────────────────────────────────── */
+
+.training-hud {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.training-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.training-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ff6633;
+}
+
+.training-stat-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.move-indicator {
+  background: rgba(255, 100, 50, 0.2);
+  border: 1px solid rgba(255, 100, 50, 0.4);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ff8855;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* ── Combo feed ──────────────────────────────────────────────────────── */
+
+.combo-feed {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 300px;
+  min-height: 24px;
+}
+
+.combo-item {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  animation: combo-pop 0.3s ease-out;
+}
+
+@keyframes combo-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Debug Panel ─────────────────────────────────────────────────────── */
+
+.debug-panel {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(4px);
+  flex-shrink: 0;
+}
+
+.debug-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 6px;
+}
+
+.debug-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+}
+
+.debug-grid span:nth-child(odd) {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.debug-grid span:nth-child(even) {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+}
+
+.debug-hit {
+  color: #ff6633 !important;
+  font-weight: 700 !important;
+  animation: combo-pop 0.2s ease-out;
+}
+
+/* ── Tutorial ────────────────────────────────────────────────────────── */
+
+.tutorial-toggle {
+  background: rgba(100, 180, 255, 0.25);
+  border: 1px solid rgba(100, 180, 255, 0.4);
+  color: #8cf;
+  padding: 6px 18px;
+  border-radius: 18px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tutorial-toggle:hover {
+  background: rgba(100, 180, 255, 0.4);
+}
+
+.tutorial-panel {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  backdrop-filter: blur(6px);
+  flex-shrink: 0;
+}
+
+.tutorial-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 8px;
+}
+
+.tutorial-figure {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: "SF Mono", "Menlo", monospace;
+  font-size: 11px;
+  color: rgba(180, 220, 255, 0.85);
+  line-height: 1.5;
+  margin-bottom: 10px;
+  white-space: pre;
+}
+
+.tutorial-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tutorial-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.tutorial-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+
+.tutorial-en {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.3;
+}
+
+.tutorial-zh {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.3;
+}
+
+.scoring-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin: 6px 0;
+}
+
+.scoring-table th,
+.scoring-table td {
+  padding: 4px 6px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.scoring-table th {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.scoring-table td {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.tutorial-footer {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: rgba(255, 200, 100, 0.8);
+  line-height: 1.5;
+}
