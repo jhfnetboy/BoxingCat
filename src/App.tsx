@@ -45,7 +45,6 @@ function App() {
   const discoveredRef = useRef<Set<string>>(new Set()); // ref for instant check
   const [discoveredMoves, setDiscoveredMoves] = useState<Set<string>>(new Set());
   const [celebrationMove, setCelebrationMove] = useState<BoxingMove | null>(null);
-  const celebrationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevLandmarksRef = useRef<Landmark[] | null>(null);
   const punchCountRef = useRef(0);
   const frameIdxRef = useRef(0);
@@ -117,9 +116,6 @@ function App() {
         discoveredRef.current = new Set([...discoveredRef.current, move]);
         setDiscoveredMoves(discoveredRef.current);
         setCelebrationMove(move);
-        // Auto-dismiss celebration after 2.5s (belt-and-suspenders)
-        if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
-        celebrationTimerRef.current = setTimeout(() => setCelebrationMove(null), 2600);
       }
       console.log(`🥊 PUNCH #${p} move=${move} maxVel=${maxVel.toFixed(3)} ra=${Math.round(ra)}°`);
     }
@@ -200,7 +196,7 @@ function App() {
   if (isTrainingWindow) {
     return (
       <div className="training-window">
-        <Celebration key={celebrationMove ?? "none"} move={celebrationMove} onDone={() => setCelebrationMove(null)} />
+        <Celebration move={celebrationMove} onDone={() => setCelebrationMove(null)} />
         <div className="tw-body" style={{ paddingTop: 12 }}>
           <div className="tw-left">
             <CameraView videoRef={videoRef} isReady={camReady} poseResult={poseResult}
