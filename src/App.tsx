@@ -15,6 +15,7 @@ import {
   MOVE_LABELS,
 } from "./utils/pose-classifier";
 import type { PoseLandmarkerResult } from "@mediapipe/tasks-vision";
+import { playPunchSound, playComboSound, playStartSound, playStopSound } from "./hooks/useSound";
 import "./styles/cat.css";
 import "./styles/fitness.css";
 import "./styles/cat-house.css";
@@ -108,11 +109,12 @@ function App() {
         calmFramesRef.current >= REQUIRED_CALM) {
       punchCountRef.current++;
       punchCooldownRef.current = PUNCH_COOLDOWN;
-      calmFramesRef.current = 0; // reset — need to be calm again
+      calmFramesRef.current = 0;
       const p = punchCountRef.current;
       const fs = Math.round(maxVel * 300);
       setTotalScore((s) => s + fs);
-      if (p % 10 === 0) { setCatFood((f) => f + 1); setMessage(`🥊 10 punches! +1 🍖`); }
+      playPunchSound();
+      if (p % 10 === 0) { setCatFood((f) => f + 1); setMessage(`🥊 10 punches! +1 🍖`); playComboSound(); }
       setCombo((prev) => { const n = [...prev, move !== "idle" ? move : "jab"]; return n.length > 12 ? n.slice(-12) : n; });
       console.log(`🥊 PUNCH #${p} maxVel=${maxVel.toFixed(3)} calm=${REQUIRED_CALM} score=${fs}`);
     }
@@ -142,6 +144,7 @@ function App() {
     punchCooldownRef.current = 0; wasPunchingRef.current = false;
     calmFramesRef.current = 0;
     setMessage("🥊 Let's box!");
+    playStartSound();
     console.log("[Pose] Training started, waiting for camera...");
     setTimeout(() => {
       if (videoRef.current) {
@@ -159,6 +162,7 @@ function App() {
     isTrainingRef.current = false;
     setCatState("idle"); setCurrentMove("idle");
     setMessage(`🏆 Score: ${totalScore} | Punches: ${punchCountRef.current}`);
+    playStopSound();
     console.log(`[Pose] Training stopped. Final score=${totalScore} punches=${punchCountRef.current}`);
   }, [stopDetection, stopCamera, totalScore]);
 
