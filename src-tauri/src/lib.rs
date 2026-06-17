@@ -51,7 +51,7 @@ fn hide_main_window(window: tauri::Window) {
 
 #[tauri::command]
 fn open_training_window(app: tauri::AppHandle) -> Result<(), String> {
-    use tauri::WebviewWindowBuilder;
+    use tauri::{Manager, WebviewWindowBuilder};
     // Close existing training window if any
     if let Some(w) = app.get_webview_window("training") {
         let _ = w.close();
@@ -74,6 +74,7 @@ fn open_training_window(app: tauri::AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 fn close_training_window(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri::Manager;
     if let Some(w) = app.get_webview_window("training") {
         let _ = w.close();
     }
