@@ -1,0 +1,120 @@
+/* ── Camera & Training UI ────────────────────────────────────────────── */
+
+.camera-container {
+  position: relative;
+  width: 360px;
+  height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.camera-video-hidden {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+}
+
+.pose-canvas {
+  width: 100%;
+  height: 200px;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.camera-btn {
+  background: rgba(255, 100, 50, 0.85);
+  color: white;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s;
+}
+
+.camera-btn:hover {
+  background: rgba(255, 120, 60, 0.95);
+  transform: scale(1.05);
+}
+
+.camera-hint {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  margin: 0;
+}
+
+/* ── Training HUD ────────────────────────────────────────────────────── */
+
+.training-hud {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.training-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.training-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ff6633;
+}
+
+.training-stat-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.move-indicator {
+  background: rgba(255, 100, 50, 0.2);
+  border: 1px solid rgba(255, 100, 50, 0.4);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ff8855;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* ── Combo feed ──────────────────────────────────────────────────────── */
+
+.combo-feed {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 300px;
+  min-height: 24px;
+}
+
+.combo-item {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  animation: combo-pop 0.3s ease-out;
+}
+
+@keyframes combo-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
