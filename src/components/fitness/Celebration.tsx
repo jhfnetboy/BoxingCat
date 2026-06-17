@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { BoxingMove } from "../../utils/pose-classifier";
 import { playCheerSound } from "../../hooks/useSound";
 
@@ -12,12 +12,15 @@ interface Props {
 }
 
 export default function Celebration({ move, onDone }: Props) {
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
+
   useEffect(() => {
     if (!move) return;
     playCheerSound();
-    const timer = setTimeout(onDone, 2500);
+    const timer = setTimeout(() => onDoneRef.current(), 2500);
     return () => clearTimeout(timer);
-  }, [move, onDone]);
+  }, [move]); // only re-run when move changes, not onDone
 
   if (!move) return null;
 
