@@ -1,19 +1,82 @@
-/* ── Camera & Training UI ────────────────────────────────────────────── */
+/* ── Training Window Layout ──────────────────────────────────────────── */
 
-.training-view {
+.training-window {
+  width: 100vw;
+  height: 100vh;
+  background: #1a1a2e;
+  color: #eee;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tw-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: rgba(0,0,0,0.3);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.tw-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.tw-close-btn {
+  background: rgba(255,60,60,0.6);
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tw-close-btn:hover {
+  background: rgba(255,60,60,0.85);
+}
+
+.tw-body {
+  display: flex;
+  flex: 1;
+  gap: 16px;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.tw-left {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  width: 100%;
-  height: 100%;
-  padding: 12px;
+  min-width: 0;
 }
+
+.tw-right {
+  width: 380px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.cam-err {
+  color: #f66;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* ── Camera Container (in training window) ──────────────────────────── */
 
 .camera-container {
   position: relative;
   width: 100%;
-  max-width: 500px;
+  max-width: 640px;
   aspect-ratio: 4/3;
   display: flex;
   flex-direction: column;

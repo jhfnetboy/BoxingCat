@@ -49,6 +49,37 @@ fn hide_main_window(window: tauri::Window) {
     let _ = window;
 }
 
+#[tauri::command]
+fn open_training_window(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri::WebviewWindowBuilder;
+    // Close existing training window if any
+    if let Some(w) = app.get_webview_window("training") {
+        let _ = w.close();
+    }
+    WebviewWindowBuilder::new(
+        &app,
+        "training",
+        tauri::WebviewUrl::App("/".into()),
+    )
+    .title("🥊 Boxing Training")
+    .inner_size(900.0, 680.0)
+    .min_inner_size(700.0, 500.0)
+    .resizable(true)
+    .center()
+    .visible(true)
+    .build()
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn close_training_window(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(w) = app.get_webview_window("training") {
+        let _ = w.close();
+    }
+    Ok(())
+}
+
 // ── App Entry ───────────────────────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -58,6 +89,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             hide_main_window,
+            open_training_window,
+            close_training_window,
         ])
         .on_window_event(|window, event| {
             #[cfg(target_os = "macos")]
