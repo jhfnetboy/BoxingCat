@@ -54,8 +54,9 @@ function App() {
   const { videoRef, isReady: camReady, error: camError, startCamera, stopCamera } = useCamera();
 
   const onLandmarks = useCallback((result: PoseLandmarkerResult) => {
-    setPoseResult(result);
     frameIdxRef.current++;
+    // Throttle skeleton re-render to every 3 frames
+    if (frameIdxRef.current % 3 === 0) setPoseResult(result);
 
     if (!isTrainingRef.current) return; // use ref to avoid stale closure
 
@@ -81,20 +82,26 @@ function App() {
     const ra = angle3(cur[12], cur[14], cur[16]);
     const la = angle3(cur[11], cur[13], cur[15]);
 
-    // ── Simple velocity-based punch detection (no classifier) ──────
-    // Camera jitter at rest: ~0.005-0.02 | Real punch: ~0.08-0.25
-    const PUNCH_VELOCITY = 0.08;  // must exceed this to count as punch
-    const PUNCH_COOLDOWN = 45;     // frames (~0.75s at 60fps)
+    // ── Simple velocity-based punch detection ──────────────────
+    // Camera jitter at rest: ~0.005-0.02 | Real punch: ~0.10-0.30
+    const PUNCH_VELOCITY = 0.10;
+    const PUNCH_COOLDOWN = 50;     // frames (~0.8s at 60fps)
+    const RECOVERY_FRAMES = 10;    // ignore for N frames after punch ends
     const maxVel = Math.max(rv, lv);
 
     if (punchCooldownRef.current > 0) punchCooldownRef.current--;
+
+    // Track punch end → start recovery period (prevent retraction count)
+    if (wasPunchingRef.current && maxVel <= PUNCH_VELOCITY) {
+      punchCooldownRef.current = Math.max(punchCooldownRef.current, RECOVERY_FRAMES);
+    }
 
     const isPunching = maxVel > PUNCH_VELOCITY;
     if (isPunching && !wasPunchingRef.current && punchCooldownRef.current === 0) {
       punchCountRef.current++;
       punchCooldownRef.current = PUNCH_COOLDOWN;
       const p = punchCountRef.current;
-      const fs = Math.round(maxVel * 300); // scale velocity to score
+      const fs = Math.round(maxVel * 300);
       setTotalScore((s) => s + fs);
       if (p % 10 === 0) { setCatFood((f) => f + 1); setMessage(`🥊 10 punches! +1 🍖`); }
       setCombo((prev) => { const n = [...prev, move !== "idle" ? move : "jab"]; return n.length > 12 ? n.slice(-12) : n; });
@@ -102,13 +109,15 @@ function App() {
     }
     wasPunchingRef.current = isPunching;
 
-    setDebug({
-      move,
-      rightVel: rv, leftVel: lv,
-      rightAngle: ra, leftAngle: la,
-      frameScore: Math.round(maxVel * 300),
-      punchCount: punchCountRef.current,
-    });
+    // Throttle UI updates to every 5 frames (avoids React overload)
+    if (frameIdxRef.current % 5 === 0) {
+      setDebug({
+        move, rightVel: rv, leftVel: lv,
+        rightAngle: ra, leftAngle: la,
+        frameScore: Math.round(maxVel * 300),
+        punchCount: punchCountRef.current,
+      });
+    }
   }, []); // isTrainingRef used instead of isTraining state
 
   const { startDetection, stopDetection } = usePoseDetection(onLandmarks);
