@@ -36,6 +36,7 @@ function App() {
 
   // ── Training state ──────────────────────────────────────────────────
   const [isTraining, setIsTraining] = useState(false);
+  const isTrainingRef = useRef(false); // ref to avoid stale closure in onLandmarks
   const [currentMove, setCurrentMove] = useState<BoxingMove>("idle");
   const [totalScore, setTotalScore] = useState(0);
   const [combo, setCombo] = useState<BoxingMove[]>([]);
@@ -55,7 +56,7 @@ function App() {
     setPoseResult(result);
     frameIdxRef.current++;
 
-    if (!isTraining) return;
+    if (!isTrainingRef.current) return; // use ref to avoid stale closure
 
     const lm = result.landmarks[0];
     if (!lm || lm.length < 17) {
@@ -94,13 +95,14 @@ function App() {
     }
 
     prevLandmarksRef.current = cur;
-  }, [isTraining]);
+  }, []); // isTrainingRef used instead of isTraining state
 
   const { startDetection, stopDetection } = usePoseDetection(onLandmarks);
 
   const handleStartTraining = useCallback(async () => {
     await startCamera();
     setIsTraining(true);
+    isTrainingRef.current = true;
     setCurrentMove("idle"); setTotalScore(0); setCombo([]);
     punchCountRef.current = 0; frameIdxRef.current = 0;
     setMessage("🥊 Let's box!");
@@ -116,7 +118,9 @@ function App() {
   }, [startCamera, startDetection, videoRef]);
 
   const handleStopTraining = useCallback(() => {
-    stopDetection(); stopCamera(); setIsTraining(false);
+    stopDetection(); stopCamera();
+    setIsTraining(false);
+    isTrainingRef.current = false;
     setCatState("idle"); setCurrentMove("idle");
     setMessage(`🏆 Score: ${totalScore} | Punches: ${punchCountRef.current}`);
     console.log(`[Pose] Training stopped. Final score=${totalScore} punches=${punchCountRef.current}`);
