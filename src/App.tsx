@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import CatViewer from "./components/CatViewer";
 import CameraView from "./components/fitness/CameraView";
+import Tutorial from "./components/fitness/Tutorial";
 import { useCamera } from "./hooks/useCamera";
 import { usePoseDetection } from "./hooks/usePoseDetection";
 import {
@@ -26,6 +27,7 @@ function App() {
   const [agility] = useState(10);
   const [message, setMessage] = useState("🐱 Meow! Welcome to BoxingCat!");
   const [view, setView] = useState<AppView>("cat");
+  const [showTutorial, setShowTutorial] = useState(false);
 
   // ── Training state ──────────────────────────────────────────────────
   const [isTraining, setIsTraining] = useState(false);
@@ -181,10 +183,27 @@ function App() {
     return () => clearInterval(interval);
   }, [isTraining]);
 
+  // ── Quit ──────────────────────────────────────────────────────────────
+
+  const handleQuit = useCallback(async () => {
+    stopDetection();
+    stopCamera();
+    // macOS: hide to dock; other platforms: exit process
+    try {
+      await invoke("hide_main_window");
+    } catch {
+      // fallback
+    }
+  }, [stopDetection, stopCamera]);
+
   return (
     <div className="app-container">
       {view === "cat" && (
         <>
+          {/* Close button */}
+          <button className="close-btn" onClick={handleQuit} title="Close / 关闭">
+            ✕
+          </button>
           <CatViewer state={catState} onClick={handleCatClick} message={message} />
           <div className="hud">
             <span className="hud-item">🍖 {catFood}</span>
@@ -225,6 +244,16 @@ function App() {
           </div>
 
           {camError && <p style={{ color: "#ff6666", fontSize: 12 }}>{camError}</p>}
+
+          {/* Tutorial toggle */}
+          <button
+            className="tutorial-toggle"
+            onClick={() => setShowTutorial((v) => !v)}
+          >
+            {showTutorial ? "✕ Hide Tutorial / 隐藏教程" : "📖 How to Box / 拳击教程"}
+          </button>
+
+          {showTutorial && <Tutorial />}
 
           {/* Debug panel — raw detection values */}
           <div className="debug-panel">
