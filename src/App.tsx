@@ -42,8 +42,10 @@ function App() {
   const [combo, setCombo] = useState<BoxingMove[]>([]);
   const [poseResult, setPoseResult] = useState<PoseLandmarkerResult | null>(null);
   const [showTutorial, setShowTutorial] = useState(true);
+  const discoveredRef = useRef<Set<string>>(new Set()); // ref for instant check
   const [discoveredMoves, setDiscoveredMoves] = useState<Set<string>>(new Set());
   const [celebrationMove, setCelebrationMove] = useState<BoxingMove | null>(null);
+  const celebrationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevLandmarksRef = useRef<Landmark[] | null>(null);
   const punchCountRef = useRef(0);
   const frameIdxRef = useRef(0);
@@ -111,9 +113,13 @@ function App() {
       if (p % 10 === 0) { setCatFood((f) => f + 1); setMessage(`🥊 10 punches! +1 🍖`); playComboSound(); }
       setCombo((prev) => { const n = [...prev, move]; return n.length > 12 ? n.slice(-12) : n; });
       // First time discovering this punch type → celebrate!
-      if (!discoveredMoves.has(move) && move !== "idle") {
-        setDiscoveredMoves((prev) => new Set([...prev, move]));
+      if (!discoveredRef.current.has(move) && move !== "idle") {
+        discoveredRef.current = new Set([...discoveredRef.current, move]);
+        setDiscoveredMoves(discoveredRef.current);
         setCelebrationMove(move);
+        // Auto-dismiss celebration after 2.5s (belt-and-suspenders)
+        if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
+        celebrationTimerRef.current = setTimeout(() => setCelebrationMove(null), 2600);
       }
       console.log(`🥊 PUNCH #${p} move=${move} maxVel=${maxVel.toFixed(3)} ra=${Math.round(ra)}°`);
     }
@@ -132,6 +138,7 @@ function App() {
     punchCountRef.current = 0; frameIdxRef.current = 0;
     punchCooldownRef.current = 0; wasPunchingRef.current = false;
     consecutivePunchRef.current = 0;
+    discoveredRef.current = new Set();
     setDiscoveredMoves(new Set());
     setMessage("🥊 Let's box!");
     playStartSound();
