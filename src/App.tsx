@@ -86,10 +86,10 @@ function App() {
     const la = angle3(cur[11], cur[13], cur[15]);
 
     // ── "Calm-before-storm" punch detection ────────────────────
-    const PUNCH_VELOCITY = 0.10;     // must exceed this
-    const CALM_VELOCITY = 0.04;      // must stay below this to be "at rest"
-    const REQUIRED_CALM = 60;        // frames of calm (~1s) before a punch can register
-    const PUNCH_COOLDOWN = 40;
+    const PUNCH_VELOCITY = 0.07;     // real punch: ~0.08-0.30
+    const CALM_VELOCITY = 0.04;      // below this = at rest
+    const REQUIRED_CALM = 8;         // brief calm before punch (filters jitter)
+    const PUNCH_COOLDOWN = 35;
     const maxVel = Math.max(rv, lv);
 
     if (punchCooldownRef.current > 0) punchCooldownRef.current--;

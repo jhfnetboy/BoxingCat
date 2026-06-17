@@ -22,7 +22,7 @@ export function playPunchSound() {
     osc.type = "sine";
     osc.frequency.setValueAtTime(200, now);
     osc.frequency.exponentialRampToValueAtTime(60, now + 0.08);
-    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.setValueAtTime(0.8, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
     osc.connect(gain).connect(c.destination);
     osc.start(now);
