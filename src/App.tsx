@@ -47,6 +47,7 @@ function App() {
   const frameIdxRef = useRef(0);
   const wasPunchingRef = useRef(false);
   const punchCooldownRef = useRef(0);
+  const consecutivePunchRef = useRef(0); // frames of consecutive punch detection
   const [debug, setDebug] = useState({
     move: "idle" as string, rightVel: 0, leftVel: 0,
     rightAngle: 0, leftAngle: 0, frameScore: 0, punchCount: 0,
@@ -84,24 +85,33 @@ function App() {
     const ra = angle3(cur[12], cur[14], cur[16]);
     const la = angle3(cur[11], cur[13], cur[15]);
 
-    // ── Classifier-based punch detection ────────────────────────
-    // Uses elbow extension (degrees/frame) via classifyBoxingMove.
+    // ── Consecutive-frame punch detection ────────────────────────
+    // Jitter: 1-2 frames of random "punch". Real punch: 5+ frames.
+    // Require 3 consecutive frames of punch detection before counting.
     const PUNCH_COOLDOWN = 40;
+    const MIN_CONSECUTIVE = 3;
     const maxVel = Math.max(rv, lv);
 
     if (punchCooldownRef.current > 0) punchCooldownRef.current--;
 
-    const isPunch = move !== "idle";
+    if (move !== "idle") {
+      consecutivePunchRef.current++;
+    } else {
+      consecutivePunchRef.current = 0;
+    }
+
+    const isPunch = consecutivePunchRef.current >= MIN_CONSECUTIVE;
     if (isPunch && !wasPunchingRef.current && punchCooldownRef.current === 0) {
       punchCountRef.current++;
       punchCooldownRef.current = PUNCH_COOLDOWN;
+      consecutivePunchRef.current = 0;
       const p = punchCountRef.current;
       const fs = Math.round(maxVel * 300);
       setTotalScore((s) => s + fs);
       playPunchSound();
       if (p % 10 === 0) { setCatFood((f) => f + 1); setMessage(`🥊 10 punches! +1 🍖`); playComboSound(); }
       setCombo((prev) => { const n = [...prev, move]; return n.length > 12 ? n.slice(-12) : n; });
-      console.log(`🥊 PUNCH #${p} move=${move} maxVel=${maxVel.toFixed(3)} ra=${Math.round(ra)}°`);
+      console.log(`🥊 PUNCH #${p} move=${move} maxVel=${maxVel.toFixed(3)} ra=${Math.round(ra)}° consecutive=${MIN_CONSECUTIVE}`);
     }
     wasPunchingRef.current = isPunch;
 
@@ -126,6 +136,7 @@ function App() {
     setCurrentMove("idle"); setTotalScore(0); setCombo([]);
     punchCountRef.current = 0; frameIdxRef.current = 0;
     punchCooldownRef.current = 0; wasPunchingRef.current = false;
+    consecutivePunchRef.current = 0;
     setMessage("🥊 Let's box!");
     playStartSound();
     console.log("[Pose] Training started, waiting for camera...");
