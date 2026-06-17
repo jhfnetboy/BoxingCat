@@ -52,12 +52,8 @@ function App() {
   const punchCooldownRef = useRef(0);
   const consecutivePunchRef = useRef(0);
   const currentMoveRef = useRef<BoxingMove>("idle");
-  const lastDebugRef = useRef<Record<string,unknown>>({});
-  const [debug, setDebug] = useState({
-    move: "idle" as string, rightVel: 0, leftVel: 0,
-    rightAngle: 0, leftAngle: 0, frameScore: 0, punchCount: 0,
-    maxVel: 0,
-  });
+  // Simplified debug — just punch count for leaderboard
+  const [punchDisplay, setPunchDisplay] = useState(0);
 
   const { videoRef, isReady: camReady, error: camError, startCamera, stopCamera } = useCamera();
 
@@ -92,7 +88,6 @@ function App() {
     const rv = prev ? velocity(prev[16], cur[16]) : 0;
     const lv = prev ? velocity(prev[15], cur[15]) : 0;
     const ra = angle3(cur[12], cur[14], cur[16]);
-    const la = angle3(cur[11], cur[13], cur[15]);
 
     // ── Consecutive-frame punch detection ────────────────────────
     // Jitter: 1-2 frames of random "punch". Real punch: 5+ frames.
@@ -129,18 +124,7 @@ function App() {
     }
     wasPunchingRef.current = isPunch;
 
-    // Only update debug when values actually change
-    const newDbg = {
-      move, rightVel: Math.round(rv * 1000) / 1000, leftVel: Math.round(lv * 1000) / 1000,
-      rightAngle: Math.round(ra), leftAngle: Math.round(la),
-      frameScore: Math.round(maxVel * 300),
-      punchCount: punchCountRef.current,
-      maxVel: Math.round(maxVel * 1000) / 1000,
-    };
-    if (JSON.stringify(newDbg) !== JSON.stringify(lastDebugRef.current)) {
-      lastDebugRef.current = newDbg;
-      setDebug(newDbg);
-    }
+    setPunchDisplay(punchCountRef.current);
   }, []); // isTrainingRef used instead of isTraining state
 
   const { startDetection, stopDetection } = usePoseDetection(onLandmarks);
@@ -214,7 +198,7 @@ function App() {
   if (isTrainingWindow) {
     return (
       <div className="training-window">
-        <Celebration move={celebrationMove} onDone={() => setCelebrationMove(null)} />
+        <Celebration key={celebrationMove ?? "none"} move={celebrationMove} onDone={() => setCelebrationMove(null)} />
         <div className="tw-body" style={{ paddingTop: 12 }}>
           <div className="tw-left">
             <CameraView videoRef={videoRef} isReady={camReady} poseResult={poseResult}
@@ -224,27 +208,27 @@ function App() {
               <div className="training-stat"><span className="training-stat-value">{totalScore}</span><span className="training-stat-label">Score</span></div>
               <div className="move-indicator">{MOVE_LABELS[currentMove]}</div>
               <div className="training-stat"><span className="training-stat-value">{catFood}</span><span className="training-stat-label">Cat Food</span></div>
-              <div className="training-stat"><span className="training-stat-value">{debug.punchCount}</span><span className="training-stat-label">Punches</span></div>
+              <div className="training-stat"><span className="training-stat-value">{punchDisplay}</span><span className="training-stat-label">Punches</span></div>
             </div>
             <div className="combo-feed">{combo.map((m, i) => <span key={i} className="combo-item">{MOVE_LABELS[m]}</span>)}</div>
           </div>
           <div className="tw-right">
-            <button className="tutorial-toggle" onClick={() => setShowTutorial((v) => !v)}>
-              {showTutorial ? "✕ Hide Tutorial" : "📖 Tutorial / 教程"}
-            </button>
-            {showTutorial && <Tutorial />}
-            <div className="debug-panel">
-              <div className="debug-title">🔍 Live Detection (logs in console)</div>
-              <div className="debug-grid">
-                <span>Move:</span><span className={debug.move !== "idle" ? "debug-hit" : ""}>{debug.move}</span>
-                <span>Frame#:</span><span>{frameIdxRef.current}</span>
-                <span>MaxVel:</span><span className={debug.maxVel > 0.10 ? "debug-hit" : ""}>{debug.maxVel.toFixed(3)}</span>
-                <span>Score/f:</span><span>{debug.frameScore}</span>
-                <span>R-Vel:</span><span>{debug.rightVel.toFixed(4)}</span>
-                <span>L-Vel:</span><span>{debug.leftVel.toFixed(4)}</span>
-                <span>Punches:</span><span>{debug.punchCount}</span>
-              </div>
+            {/* Tabs */}
+            <div className="tw-tabs">
+              <button className={`tw-tab ${showTutorial ? "active" : ""}`} onClick={() => setShowTutorial(true)}>📖 Tutorial</button>
+              <button className={`tw-tab ${!showTutorial ? "active" : ""}`} onClick={() => setShowTutorial(false)}>🏆 Leaderboard</button>
             </div>
+            {showTutorial ? (
+              <Tutorial />
+            ) : (
+              <div className="leaderboard-panel">
+                <div className="lb-title">Top Punches (this session)</div>
+                <div className="lb-row"><span>🥊 Total Punches</span><span>{punchDisplay}</span></div>
+                <div className="lb-row"><span>⭐ Score</span><span>{totalScore}</span></div>
+                <div className="lb-row"><span>🍖 Cat Food</span><span>{catFood}</span></div>
+                <div className="lb-row"><span>🏅 Discoveries</span><span>{[...discoveredMoves].length}/4</span></div>
+              </div>
+            )}
           </div>
         </div>
       </div>

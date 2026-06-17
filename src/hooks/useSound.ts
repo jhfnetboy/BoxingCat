@@ -83,6 +83,28 @@ export function playStartSound() {
   } catch { /* */ }
 }
 
+/** Celebration cheer — fanfare for new move discovery */
+export function playCheerSound() {
+  try {
+    const c = ctx();
+    const now = c.currentTime;
+    // Rising fanfare
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      osc.type = "triangle";
+      osc.frequency.value = freq;
+      const t = now + i * 0.1;
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(0.3, t + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      osc.connect(gain).connect(c.destination);
+      osc.start(t);
+      osc.stop(t + 0.3);
+    });
+  } catch { /* */ }
+}
+
 /** Training stop — short descending tone */
 export function playStopSound() {
   try {

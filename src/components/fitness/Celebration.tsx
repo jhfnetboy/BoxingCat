@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
 import type { BoxingMove } from "../../utils/pose-classifier";
+import { playCheerSound } from "../../hooks/useSound";
 
 interface Props {
-  move: BoxingMove | null; // which punch was just discovered
+  move: BoxingMove | null;
   onDone: () => void;
 }
 
@@ -20,6 +21,7 @@ export default function Celebration({ move, onDone }: Props) {
 
   useEffect(() => {
     if (!move) return;
+    playCheerSound();
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");

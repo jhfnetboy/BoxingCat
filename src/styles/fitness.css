@@ -210,7 +210,64 @@
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* ── Debug Panel ─────────────────────────────────────────────────────── */
+/* ── Tabs ───────────────────────────────────────────────────────────── */
+
+.tw-tabs {
+  display: flex;
+  gap: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.tw-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tw-tab.active {
+  background: rgba(255,100,50,0.3);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ── Leaderboard ────────────────────────────────────────────────────── */
+
+.leaderboard-panel {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.lb-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 12px;
+}
+
+.lb-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 13px;
+  color: rgba(255,255,255,0.7);
+}
+
+.lb-row span:last-child {
+  font-weight: 600;
+  color: #ff8855;
+}
+
+/* ── Debug Panel (hidden) ───────────────────────────────────────────── */
 
 .debug-panel {
   width: 100%;
