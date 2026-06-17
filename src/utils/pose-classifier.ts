@@ -1,8 +1,10 @@
 /**
- * Boxing pose classifier — rule-engine based for Phase 1 MVP.
+ * Boxing pose classifier — elbow-extension based.
  *
- * Uses MediaPipe 33-landmark pose data to classify:
- *   jab, cross, hook, uppercut, slip, idle
+ * Core insight: a punch = elbow rapidly extending.
+ * Head turns, standing up, waving — none of these extend the elbow.
+ * By measuring elbow ANGLE CHANGE (not absolute wrist velocity),
+ * we eliminate false positives from whole-body movement.
  */
 
 export interface Landmark {
@@ -30,44 +32,39 @@ export function velocity(prev: Landmark | undefined, curr: Landmark): number {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-// ── Thresholds (classifier as primary detector) ────────────────────────
-// Key insight: a real punch has BOTH high speed AND correct geometry.
-// Sitting still: vel ~0.01-0.03. Standing up: all points move together.
-// Only a punch: specific arm extension + fast wrist + shoulder rotation.
+// ── Elbow extension based classifier ────────────────────────────────────
 
-const JAB_SPEED = 0.08;          // must be a real punch, not a wave
-const JAB_ARM_ANGLE_MIN = 110;   // arm must be extending (not bent)
-const HOOK_SPEED = 0.07;
-const HOOK_ARM_ANGLE_LO = 40;    // arm bent for hook
-const HOOK_ARM_ANGLE_HI = 140;
-const HOOK_SHOULDER_ROT = 10;    // shoulder must rotate for hook
-const UPPERCUT_RISE = 0.04;      // wrist must move upward
-const SLIP_HEAD = 0.04;          // head must actually move
-const ANY_MOVEMENT = 999;        // disabled — require specific boxing move
+/** How many degrees the elbow must extend in one frame to qualify as a punch */
+const ELBOW_EXTEND_SPEED = 3.0;   // degrees per frame at 30fps = 90°/sec
 
-// ── Classifier ──────────────────────────────────────────────────────────
+/** Minimum arm extension angle for a "straight" punch (jab/cross) */
+const STRAIGHT_ARM = 130;
+
+/** Arm angle range for a hook (bent arm) */
+const HOOK_ANGLE_LO = 40;
+const HOOK_ANGLE_HI = 110;
 
 export function classifyBoxingMove(
   landmarks: Landmark[],
   prevLandmarks: Landmark[] | null,
 ): BoxingMove {
   if (landmarks.length < 17) return "idle";
+  if (!prevLandmarks) return "idle";
 
-  // Key indices from MediaPipe
-  const NOSE = 0;
-  const L_SHOULDER = 11, R_SHOULDER = 12;
-  const L_ELBOW = 13, R_ELBOW = 14;
-  const L_WRIST = 15, R_WRIST = 16;
+  const R_SHOULDER = 12, R_ELBOW = 14, R_WRIST = 16;
+  const L_SHOULDER = 11, L_ELBOW = 13, L_WRIST = 15;
 
-  const prev = prevLandmarks;
+  // Current arm angles
+  const rAngle = angle3(landmarks[R_SHOULDER], landmarks[R_ELBOW], landmarks[R_WRIST]);
+  const lAngle = angle3(landmarks[L_SHOULDER], landmarks[L_ELBOW], landmarks[L_WRIST]);
 
-  // Arm angles
-  const rightArmAngle = angle3(landmarks[R_SHOULDER], landmarks[R_ELBOW], landmarks[R_WRIST]);
-  const leftArmAngle = angle3(landmarks[L_SHOULDER], landmarks[L_ELBOW], landmarks[L_WRIST]);
+  // Previous arm angles
+  const prevRAngle = angle3(prevLandmarks[R_SHOULDER], prevLandmarks[R_ELBOW], prevLandmarks[R_WRIST]);
+  const prevLAngle = angle3(prevLandmarks[L_SHOULDER], prevLandmarks[L_ELBOW], prevLandmarks[L_WRIST]);
 
-  // Wrist velocities
-  const rightWristVel = velocity(prev?.[R_WRIST], landmarks[R_WRIST]);
-  const leftWristVel = velocity(prev?.[L_WRIST], landmarks[L_WRIST]);
+  // Elbow extension speed (degrees changed this frame)
+  const rExtend = rAngle - prevRAngle; // positive = arm extending
+  const lExtend = lAngle - prevLAngle;
 
   // Shoulder rotation (for hook detection)
   const shoulderAngle = Math.abs(
@@ -77,46 +74,36 @@ export function classifyBoxingMove(
     )
   ) * (180 / Math.PI);
 
-  // Head offset (for slip detection)
-  const headOffset = prev
-    ? Math.abs(landmarks[NOSE].x - prev[NOSE].x)
-    : 0;
+  const prevShoulder = Math.abs(
+    Math.atan2(
+      prevLandmarks[L_SHOULDER].y - prevLandmarks[R_SHOULDER].y,
+      prevLandmarks[L_SHOULDER].x - prevLandmarks[R_SHOULDER].x,
+    )
+  ) * (180 / Math.PI);
 
-  // ── Classify ────────────────────────────────────────────────────────
+  const shoulderRot = Math.abs(shoulderAngle - prevShoulder);
 
-  // Jab: right arm near-straight + high velocity
-  if (rightWristVel > JAB_SPEED && rightArmAngle > JAB_ARM_ANGLE_MIN) {
+  // ── Classify based on elbow extension ────────────────────────────
+
+  // Jab/Cross: right arm extending rapidly → straight arm
+  if (rExtend > ELBOW_EXTEND_SPEED && rAngle > STRAIGHT_ARM) {
     return "jab";
   }
-
-  // Cross: left arm near-straight + high velocity
-  if (leftWristVel > JAB_SPEED && leftArmAngle > JAB_ARM_ANGLE_MIN) {
+  if (lExtend > ELBOW_EXTEND_SPEED && lAngle > STRAIGHT_ARM) {
     return "cross";
   }
 
-  // Hook: bent arm + shoulder rotation + velocity
-  if (
-    rightWristVel > HOOK_SPEED &&
-    rightArmAngle > HOOK_ARM_ANGLE_LO &&
-    rightArmAngle < HOOK_ARM_ANGLE_HI &&
-    shoulderAngle > HOOK_SHOULDER_ROT
-  ) {
+  // Hook: arm extending in bent range + shoulder rotating
+  if (rExtend > ELBOW_EXTEND_SPEED &&
+      rAngle > HOOK_ANGLE_LO && rAngle < HOOK_ANGLE_HI &&
+      shoulderRot > 5) {
     return "hook";
   }
 
-  // Uppercut: wrist moving upward
-  if (prev && rightWristVel > HOOK_SPEED && (prev[R_WRIST].y - landmarks[R_WRIST].y) > UPPERCUT_RISE) {
+  // Uppercut: arm extending + wrist moving upward
+  const rWristUp = prevLandmarks[R_WRIST].y - landmarks[R_WRIST].y;
+  if (rExtend > ELBOW_EXTEND_SPEED * 0.7 && rWristUp > 0.02) {
     return "uppercut";
-  }
-
-  // Slip: head moved laterally
-  if (headOffset > SLIP_HEAD) {
-    return "slip";
-  }
-
-  // Any significant arm movement → at least a "jab" (base score)
-  if (rightWristVel > ANY_MOVEMENT || leftWristVel > ANY_MOVEMENT) {
-    return "jab"; // default punch
   }
 
   return "idle";
@@ -130,58 +117,23 @@ export interface ScoreFrame {
   powerScore: number;
 }
 
-export function scorePose(
-  landmarks: Landmark[],
-  move: BoxingMove,
-): ScoreFrame {
-  // Base score for any non-idle movement
+export function scorePose(landmarks: Landmark[], move: BoxingMove): ScoreFrame {
   if (move === "idle") return { move, poseScore: 0, powerScore: 0 };
 
   const R_SHOULDER = 12, R_ELBOW = 14, R_WRIST = 16;
-  const L_SHOULDER = 11, L_ELBOW = 13, L_WRIST = 15;
+  const armAngle = angle3(landmarks[R_SHOULDER], landmarks[R_ELBOW], landmarks[R_WRIST]);
 
-  const rightArmAngle = angle3(landmarks[R_SHOULDER], landmarks[R_ELBOW], landmarks[R_WRIST]);
-  const leftArmAngle = angle3(landmarks[L_SHOULDER], landmarks[L_ELBOW], landmarks[L_WRIST]);
-
-  let poseScore = 40; // base score for any movement
-
+  let poseScore = 50;
   switch (move) {
-    case "jab":
-      // Standard jab: arm near-straight gives bonus
-      if (rightArmAngle > 120) poseScore = 70;
-      if (rightArmAngle > 150) poseScore = 90;
-      break;
-    case "cross":
-      if (leftArmAngle > 120) poseScore = 70;
-      if (leftArmAngle > 150) poseScore = 90;
-      break;
-    case "hook":
-      // Hook: arm ~90° is ideal
-      const hookDeviation = Math.abs(rightArmAngle - 90);
-      if (hookDeviation < 30) poseScore = 70;
-      if (hookDeviation < 15) poseScore = 90;
-      break;
-    case "uppercut":
-      poseScore = 80;
-      break;
-    case "slip":
-      poseScore = 60;
-      break;
-    default:
-      poseScore = 40;
+    case "jab": poseScore = armAngle > 150 ? 90 : armAngle > 130 ? 70 : 50; break;
+    case "hook": poseScore = Math.abs(armAngle - 90) < 20 ? 80 : 50; break;
+    default: poseScore = 60;
   }
 
-  const powerScore = Math.round(poseScore * 0.75);
-
-  return { move, poseScore: Math.round(poseScore), powerScore };
+  return { move, poseScore, powerScore: Math.round(poseScore * 0.75) };
 }
 
-// Move display names
 export const MOVE_LABELS: Record<BoxingMove, string> = {
-  jab: "🥊 Jab",
-  cross: "💥 Cross",
-  hook: "🪝 Hook",
-  uppercut: "⬆️ Uppercut",
-  slip: "↗️ Slip",
-  idle: "⏸️",
+  jab: "🥊 Jab", cross: "💥 Cross", hook: "🪝 Hook",
+  uppercut: "⬆️ Uppercut", slip: "↗️ Slip", idle: "⏸️",
 };

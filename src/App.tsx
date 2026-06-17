@@ -85,15 +85,13 @@ function App() {
     const la = angle3(cur[11], cur[13], cur[15]);
 
     // ── Classifier-based punch detection ────────────────────────
-    // The classifier (classifyBoxingMove) checks BOTH speed AND geometry.
-    // Only jab/cross/hook/uppercut/slip geometry passes. Standing up
-    // or random waving has speed but wrong geometry → filtered out.
+    // Uses elbow extension (degrees/frame) via classifyBoxingMove.
     const PUNCH_COOLDOWN = 40;
     const maxVel = Math.max(rv, lv);
 
     if (punchCooldownRef.current > 0) punchCooldownRef.current--;
 
-    const isPunch = move !== "idle"; // classifier says it's a boxing move
+    const isPunch = move !== "idle";
     if (isPunch && !wasPunchingRef.current && punchCooldownRef.current === 0) {
       punchCountRef.current++;
       punchCooldownRef.current = PUNCH_COOLDOWN;
@@ -103,7 +101,7 @@ function App() {
       playPunchSound();
       if (p % 10 === 0) { setCatFood((f) => f + 1); setMessage(`🥊 10 punches! +1 🍖`); playComboSound(); }
       setCombo((prev) => { const n = [...prev, move]; return n.length > 12 ? n.slice(-12) : n; });
-      console.log(`🥊 PUNCH #${p} move=${move} maxVel=${maxVel.toFixed(3)} angle=${Math.round(ra)}° score=${fs}`);
+      console.log(`🥊 PUNCH #${p} move=${move} maxVel=${maxVel.toFixed(3)} ra=${Math.round(ra)}°`);
     }
     wasPunchingRef.current = isPunch;
 
