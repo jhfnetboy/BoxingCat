@@ -45,7 +45,8 @@ function App() {
   const prevLandmarksRef = useRef<Landmark[] | null>(null);
   const punchCountRef = useRef(0);
   const frameIdxRef = useRef(0);
-  const wasPunchingRef = useRef(false); // rising-edge detection
+  const wasPunchingRef = useRef(false);
+  const punchCooldownRef = useRef(0); // frames until next punch can register
   const [debug, setDebug] = useState({
     move: "idle" as string, rightVel: 0, leftVel: 0,
     rightAngle: 0, leftAngle: 0, frameScore: 0, punchCount: 0,
@@ -68,6 +69,11 @@ function App() {
 
     const cur = lm as unknown as Landmark[];
     const prev = prevLandmarksRef.current;
+    prevLandmarksRef.current = cur;
+
+    // ── Only process scoring when training is active ────────────────
+    if (!isTrainingRef.current) return;
+
     const move = classifyBoxingMove(cur, prev);
     setCurrentMove(move);
 
@@ -78,25 +84,27 @@ function App() {
 
     const { poseScore, powerScore } = scorePose(cur, move);
     const fs = move !== "idle" ? Math.round((poseScore + powerScore) / 2) : 0;
-    setTotalScore((s) => s + fs);
 
-    // Rising-edge detection: only count punch when it BEGINS
-    // (transition from idle to active), not every qualifying frame
-    const isPunching = fs > 20;
-    if (isPunching && !wasPunchingRef.current) {
+    // Decrement punch cooldown
+    if (punchCooldownRef.current > 0) punchCooldownRef.current--;
+
+    // Rising-edge + cooldown: only count when:
+    // 1. Transition from idle to punching (rising edge)
+    // 2. At least 30 frames since last punch (cooldown)
+    // 3. Score exceeds minimum threshold
+    const isPunching = fs > 30 && move !== "idle";
+    if (isPunching && !wasPunchingRef.current && punchCooldownRef.current === 0) {
       punchCountRef.current++;
+      punchCooldownRef.current = 30; // ~0.5s at 60fps
       const p = punchCountRef.current;
+      setTotalScore((s) => s + fs);
       if (p % 10 === 0) { setCatFood((f) => f + 1); setMessage(`🥊 10 punches! +1 🍖`); }
       setCombo((prev) => { const n = [...prev, move]; return n.length > 12 ? n.slice(-12) : n; });
-      if (frameIdxRef.current % 5 === 0) {
-        console.log(`[Pose] 🥊 PUNCH #${p} move=${move} fs=${fs}`);
-      }
+      console.log(`[Pose] 🥊 PUNCH #${p} move=${move} fs=${fs} rv=${rv.toFixed(3)} ra=${Math.round(ra)}°`);
     }
     wasPunchingRef.current = isPunching;
 
     setDebug({ move, rightVel: rv, leftVel: lv, rightAngle: ra, leftAngle: la, frameScore: fs, punchCount: punchCountRef.current });
-
-    prevLandmarksRef.current = cur;
   }, []); // isTrainingRef used instead of isTraining state
 
   const { startDetection, stopDetection } = usePoseDetection(onLandmarks);
@@ -107,6 +115,7 @@ function App() {
     isTrainingRef.current = true;
     setCurrentMove("idle"); setTotalScore(0); setCombo([]);
     punchCountRef.current = 0; frameIdxRef.current = 0;
+    punchCooldownRef.current = 0; wasPunchingRef.current = false;
     setMessage("🥊 Let's box!");
     console.log("[Pose] Training started, waiting for camera...");
     setTimeout(() => {

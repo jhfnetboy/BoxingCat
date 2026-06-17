@@ -30,17 +30,17 @@ export function velocity(prev: Landmark | undefined, curr: Landmark): number {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-// ── Thresholds (lenient for MVP — tune with real data later) ──────────
+// ── Thresholds (tuned to reject camera noise / breathing) ─────────────
 
-const JAB_SPEED = 0.02;          // wrist velocity for a punch
+const JAB_SPEED = 0.06;          // fast wrist movement only
 const JAB_ARM_ANGLE_MIN = 100;   // arm extension for jab
-const HOOK_SPEED = 0.015;
+const HOOK_SPEED = 0.05;
 const HOOK_ARM_ANGLE_LO = 35;
 const HOOK_ARM_ANGLE_HI = 145;
 const HOOK_SHOULDER_ROT = 8;
-const UPPERCUT_RISE = 0.01;
-const SLIP_HEAD = 0.015;
-const ANY_MOVEMENT = 0.01;       // any wrist movement → base score
+const UPPERCUT_RISE = 0.03;
+const SLIP_HEAD = 0.03;
+const ANY_MOVEMENT = 999;        // disabled — must match a specific move
 
 // ── Classifier ──────────────────────────────────────────────────────────
 
