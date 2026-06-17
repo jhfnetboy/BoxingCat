@@ -8,7 +8,6 @@ import { useCamera } from "./hooks/useCamera";
 import { usePoseDetection } from "./hooks/usePoseDetection";
 import {
   classifyBoxingMove,
-  scorePose,
   velocity,
   angle3,
   type BoxingMove,
@@ -82,29 +81,34 @@ function App() {
     const ra = angle3(cur[12], cur[14], cur[16]);
     const la = angle3(cur[11], cur[13], cur[15]);
 
-    const { poseScore, powerScore } = scorePose(cur, move);
-    const fs = move !== "idle" ? Math.round((poseScore + powerScore) / 2) : 0;
+    // ── Simple velocity-based punch detection (no classifier) ──────
+    // Camera jitter at rest: ~0.005-0.02 | Real punch: ~0.08-0.25
+    const PUNCH_VELOCITY = 0.08;  // must exceed this to count as punch
+    const PUNCH_COOLDOWN = 45;     // frames (~0.75s at 60fps)
+    const maxVel = Math.max(rv, lv);
 
-    // Decrement punch cooldown
     if (punchCooldownRef.current > 0) punchCooldownRef.current--;
 
-    // Rising-edge + cooldown: only count when:
-    // 1. Transition from idle to punching (rising edge)
-    // 2. At least 30 frames since last punch (cooldown)
-    // 3. Score exceeds minimum threshold
-    const isPunching = fs > 30 && move !== "idle";
+    const isPunching = maxVel > PUNCH_VELOCITY;
     if (isPunching && !wasPunchingRef.current && punchCooldownRef.current === 0) {
       punchCountRef.current++;
-      punchCooldownRef.current = 30; // ~0.5s at 60fps
+      punchCooldownRef.current = PUNCH_COOLDOWN;
       const p = punchCountRef.current;
+      const fs = Math.round(maxVel * 300); // scale velocity to score
       setTotalScore((s) => s + fs);
       if (p % 10 === 0) { setCatFood((f) => f + 1); setMessage(`🥊 10 punches! +1 🍖`); }
-      setCombo((prev) => { const n = [...prev, move]; return n.length > 12 ? n.slice(-12) : n; });
-      console.log(`[Pose] 🥊 PUNCH #${p} move=${move} fs=${fs} rv=${rv.toFixed(3)} ra=${Math.round(ra)}°`);
+      setCombo((prev) => { const n = [...prev, move !== "idle" ? move : "jab"]; return n.length > 12 ? n.slice(-12) : n; });
+      console.log(`🥊 PUNCH #${p} maxVel=${maxVel.toFixed(3)} score=${fs}`);
     }
     wasPunchingRef.current = isPunching;
 
-    setDebug({ move, rightVel: rv, leftVel: lv, rightAngle: ra, leftAngle: la, frameScore: fs, punchCount: punchCountRef.current });
+    setDebug({
+      move,
+      rightVel: rv, leftVel: lv,
+      rightAngle: ra, leftAngle: la,
+      frameScore: Math.round(maxVel * 300),
+      punchCount: punchCountRef.current,
+    });
   }, []); // isTrainingRef used instead of isTraining state
 
   const { startDetection, stopDetection } = usePoseDetection(onLandmarks);
