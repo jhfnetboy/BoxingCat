@@ -132,3 +132,46 @@
   0% { transform: scale(0.5); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
+
+/* ── Debug Panel ─────────────────────────────────────────────────────── */
+
+.debug-panel {
+  width: 100%;
+  max-width: 500px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.debug-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 6px;
+}
+
+.debug-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+}
+
+.debug-grid span:nth-child(odd) {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.debug-grid span:nth-child(even) {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+}
+
+.debug-hit {
+  color: #ff6633 !important;
+  font-weight: 700 !important;
+  animation: combo-pop 0.2s ease-out;
+}

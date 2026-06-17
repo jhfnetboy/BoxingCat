@@ -14,7 +14,7 @@ export type BoxingMove = "jab" | "cross" | "hook" | "uppercut" | "slip" | "idle"
 
 // ── Geometry helpers ────────────────────────────────────────────────────
 
-function angle3(a: Landmark, b: Landmark, c: Landmark): number {
+export function angle3(a: Landmark, b: Landmark, c: Landmark): number {
   const ba = { x: a.x - b.x, y: a.y - b.y };
   const bc = { x: c.x - b.x, y: c.y - b.y };
   const dot = ba.x * bc.x + ba.y * bc.y;
@@ -23,7 +23,7 @@ function angle3(a: Landmark, b: Landmark, c: Landmark): number {
   return Math.acos(Math.max(-1, Math.min(1, dot / mag))) * (180 / Math.PI);
 }
 
-function velocity(prev: Landmark | undefined, curr: Landmark): number {
+export function velocity(prev: Landmark | undefined, curr: Landmark): number {
   if (!prev) return 0;
   const dx = curr.x - prev.x;
   const dy = curr.y - prev.y;

@@ -7,6 +7,8 @@ import { usePoseDetection } from "./hooks/usePoseDetection";
 import {
   classifyBoxingMove,
   scorePose,
+  velocity,
+  angle3,
   type BoxingMove,
   type Landmark,
   MOVE_LABELS,
@@ -32,8 +34,17 @@ function App() {
   const [combo, setCombo] = useState<BoxingMove[]>([]);
   const [poseResult, setPoseResult] = useState<PoseLandmarkerResult | null>(null);
   const prevLandmarksRef = useRef<Landmark[] | null>(null);
-  const frameCountRef = useRef(0);
-  const lastPunchFrameRef = useRef(0);
+  const punchCountRef = useRef(0);
+  // Debug state — raw detection values
+  const [debug, setDebug] = useState({
+    move: "idle" as string,
+    rightVel: 0,
+    leftVel: 0,
+    rightAngle: 0,
+    leftAngle: 0,
+    frameScore: 0,
+    punchCount: 0,
+  });
 
   // Camera
   const { videoRef, isReady: camReady, error: camError, startCamera, stopCamera } = useCamera();
@@ -55,26 +66,45 @@ function App() {
       const move = classifyBoxingMove(currentLandmarks, prev);
       setCurrentMove(move);
 
-      if (move !== "idle") {
-        const { poseScore, powerScore } = scorePose(currentLandmarks, move);
-        const frameScore = Math.round((poseScore + powerScore) / 2);
-        setTotalScore((s) => s + frameScore);
+      // Calculate raw metrics for debug
+      const rWrist = currentLandmarks[16];
+      const lWrist = currentLandmarks[15];
+      const rElbow = currentLandmarks[14];
+      const rShoulder = currentLandmarks[12];
+      const lElbow = currentLandmarks[13];
+      const lShoulder = currentLandmarks[11];
+      const rightVel = prev ? velocity(prev[16], rWrist) : 0;
+      const leftVel = prev ? velocity(prev[15], lWrist) : 0;
+      const rightAngle = angle3(rShoulder, rElbow, rWrist);
+      const leftAngle = angle3(lShoulder, lElbow, lWrist);
 
-        // Give cat food on first punch frame (with 15-frame cooldown)
-        frameCountRef.current++;
-        if (
-          frameCountRef.current - lastPunchFrameRef.current > 15 &&
-          frameScore > 10
-        ) {
-          lastPunchFrameRef.current = frameCountRef.current;
+      const { poseScore, powerScore } = scorePose(currentLandmarks, move);
+      const frameScore = move !== "idle" ? Math.round((poseScore + powerScore) / 2) : 0;
+
+      // Real-time scoring: every qualifying punch frame → +1 to punch count
+      // Every 10 punches → +1 cat food
+      setTotalScore((s) => s + frameScore);
+
+      if (frameScore > 20) {
+        punchCountRef.current++;
+        const p = punchCountRef.current;
+        if (p % 10 === 0) {
           setCatFood((f) => f + 1);
-          setMessage(`🥊 ${MOVE_LABELS[move]}! +1 Cat Food! (+${frameScore}pts)`);
+          setMessage(`🥊 10 punches! +1 🍖`);
         }
-
         // Track combo
         setCombo((prev) => {
           const next = [...prev, move];
           return next.length > 12 ? next.slice(-12) : next;
+        });
+        setDebug({
+          move, rightVel, leftVel, rightAngle, leftAngle,
+          frameScore, punchCount: p,
+        });
+      } else {
+        setDebug({
+          move, rightVel, leftVel, rightAngle, leftAngle,
+          frameScore, punchCount: punchCountRef.current,
         });
       }
 
@@ -195,6 +225,20 @@ function App() {
           </div>
 
           {camError && <p style={{ color: "#ff6666", fontSize: 12 }}>{camError}</p>}
+
+          {/* Debug panel — raw detection values */}
+          <div className="debug-panel">
+            <div className="debug-title">🔍 Detection Debug</div>
+            <div className="debug-grid">
+              <span>Move:</span><span className={debug.move !== "idle" ? "debug-hit" : ""}>{debug.move}</span>
+              <span>Score/frame:</span><span>{debug.frameScore}</span>
+              <span>R-Wrist vel:</span><span>{debug.rightVel.toFixed(4)}</span>
+              <span>L-Wrist vel:</span><span>{debug.leftVel.toFixed(4)}</span>
+              <span>R-Arm angle:</span><span>{Math.round(debug.rightAngle)}°</span>
+              <span>L-Arm angle:</span><span>{Math.round(debug.leftAngle)}°</span>
+              <span>Punches:</span><span>{debug.punchCount}</span>
+            </div>
+          </div>
         </div>
       )}
 
