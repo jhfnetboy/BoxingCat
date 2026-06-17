@@ -19,8 +19,11 @@ export default function Celebration({ move, onDone }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef(0);
 
+  const playedRef = useRef(false);
+
   useEffect(() => {
-    if (!move) return;
+    if (!move || playedRef.current) return;
+    playedRef.current = true;
     playCheerSound();
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -98,7 +101,7 @@ export default function Celebration({ move, onDone }: Props) {
       );
       ctx.font = "18px -apple-system, sans-serif";
       ctx.fillStyle = "rgba(255,255,255,0.7)";
-      ctx.fillText("New move discovered! 新拳型掌握!", canvas.width / 2, canvas.height / 2 + 25);
+      ctx.fillText("New move discovered!", canvas.width / 2, canvas.height / 2 + 25);
       ctx.restore();
 
       animRef.current = requestAnimationFrame(animate);

@@ -38,7 +38,6 @@ function App() {
   // ── Training state ──────────────────────────────────────────────────
   const [isTraining, setIsTraining] = useState(false);
   const isTrainingRef = useRef(false); // ref to avoid stale closure in onLandmarks
-  const [currentMove, setCurrentMove] = useState<BoxingMove>("idle");
   const [totalScore, setTotalScore] = useState(0);
   const [combo, setCombo] = useState<BoxingMove[]>([]);
   const [poseResult, setPoseResult] = useState<PoseLandmarkerResult | null>(null);
@@ -79,11 +78,7 @@ function App() {
     if (!isTrainingRef.current) return;
 
     const move = classifyBoxingMove(cur, prev);
-    // Only update move display when it actually changes (stops flicker)
-    if (move !== currentMoveRef.current) {
-      currentMoveRef.current = move;
-      setCurrentMove(move);
-    }
+    currentMoveRef.current = move;
 
     const rv = prev ? velocity(prev[16], cur[16]) : 0;
     const lv = prev ? velocity(prev[15], cur[15]) : 0;
@@ -133,7 +128,7 @@ function App() {
     await startCamera();
     setIsTraining(true);
     isTrainingRef.current = true;
-    setCurrentMove("idle"); setTotalScore(0); setCombo([]);
+    currentMoveRef.current = "idle"; setTotalScore(0); setCombo([]);
     punchCountRef.current = 0; frameIdxRef.current = 0;
     punchCooldownRef.current = 0; wasPunchingRef.current = false;
     consecutivePunchRef.current = 0;
@@ -155,7 +150,7 @@ function App() {
     stopDetection(); stopCamera();
     setIsTraining(false);
     isTrainingRef.current = false;
-    setCatState("idle"); setCurrentMove("idle");
+    setCatState("idle"); currentMoveRef.current = "idle";
     setMessage(`🏆 Score: ${totalScore} | Punches: ${punchCountRef.current}`);
     playStopSound();
     console.log(`[Pose] Training stopped. Final score=${totalScore} punches=${punchCountRef.current}`);
@@ -206,8 +201,7 @@ function App() {
             {camError && <p className="cam-err">{camError}</p>}
             <div className="training-hud">
               <div className="training-stat"><span className="training-stat-value">{totalScore}</span><span className="training-stat-label">Score</span></div>
-              <div className="move-indicator">{MOVE_LABELS[currentMove]}</div>
-              <div className="training-stat"><span className="training-stat-value">{catFood}</span><span className="training-stat-label">Cat Food</span></div>
+              <div className="training-stat"><span className="training-stat-value">{catFood}</span><span className="training-stat-label">🍖 Food</span></div>
               <div className="training-stat"><span className="training-stat-value">{punchDisplay}</span><span className="training-stat-label">Punches</span></div>
             </div>
             <div className="combo-feed">{combo.map((m, i) => <span key={i} className="combo-item">{MOVE_LABELS[m]}</span>)}</div>
@@ -222,11 +216,27 @@ function App() {
               <Tutorial />
             ) : (
               <div className="leaderboard-panel">
-                <div className="lb-title">Top Punches (this session)</div>
-                <div className="lb-row"><span>🥊 Total Punches</span><span>{punchDisplay}</span></div>
+                <div className="lb-title">Your Session</div>
+                <div className="lb-row"><span>🥊 Punches</span><span>{punchDisplay}</span></div>
                 <div className="lb-row"><span>⭐ Score</span><span>{totalScore}</span></div>
                 <div className="lb-row"><span>🍖 Cat Food</span><span>{catFood}</span></div>
                 <div className="lb-row"><span>🏅 Discoveries</span><span>{[...discoveredMoves].length}/4</span></div>
+
+                <div className="lb-title" style={{ marginTop: 16 }}>🏆 Global Rankings</div>
+                <div className="lb-section-title">Most Punches</div>
+                <div className="lb-row"><span>🥇 ShadowBoxer99</span><span>2,847</span></div>
+                <div className="lb-row"><span>🥈 CatNinja42</span><span>1,932</span></div>
+                <div className="lb-row"><span>🥉 PunchLord</span><span>1,456</span></div>
+
+                <div className="lb-section-title">Most Agile Cats</div>
+                <div className="lb-row"><span>🥇 SwiftPaws</span><span>⚡ 980</span></div>
+                <div className="lb-row"><span>🥈 LightningCat</span><span>⚡ 872</span></div>
+                <div className="lb-row"><span>🥉 NeoWhiskers</span><span>⚡ 765</span></div>
+
+                <div className="lb-section-title">Most Frisbees Caught</div>
+                <div className="lb-row"><span>🥇 DiscMaster</span><span>🥏 342</span></div>
+                <div className="lb-row"><span>🥈 SkyHunter</span><span>🥏 218</span></div>
+                <div className="lb-row"><span>🥉 FrisbeeCat</span><span>🥏 156</span></div>
               </div>
             )}
           </div>
