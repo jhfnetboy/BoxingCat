@@ -47,7 +47,9 @@ function App() {
   const frameIdxRef = useRef(0);
   const wasPunchingRef = useRef(false);
   const punchCooldownRef = useRef(0);
-  const consecutivePunchRef = useRef(0); // frames of consecutive punch detection
+  const consecutivePunchRef = useRef(0);
+  const currentMoveRef = useRef<BoxingMove>("idle");
+  const lastDebugRef = useRef<Record<string,unknown>>({});
   const [debug, setDebug] = useState({
     move: "idle" as string, rightVel: 0, leftVel: 0,
     rightAngle: 0, leftAngle: 0, frameScore: 0, punchCount: 0,
@@ -78,7 +80,11 @@ function App() {
     if (!isTrainingRef.current) return;
 
     const move = classifyBoxingMove(cur, prev);
-    setCurrentMove(move);
+    // Only update move display when it actually changes (stops flicker)
+    if (move !== currentMoveRef.current) {
+      currentMoveRef.current = move;
+      setCurrentMove(move);
+    }
 
     const rv = prev ? velocity(prev[16], cur[16]) : 0;
     const lv = prev ? velocity(prev[15], cur[15]) : 0;
@@ -115,15 +121,17 @@ function App() {
     }
     wasPunchingRef.current = isPunch;
 
-    // Throttle UI updates to every 15 frames (~0.5s) to stop flicker
-    if (frameIdxRef.current % 15 === 0) {
-      setDebug({
-        move, rightVel: rv, leftVel: lv,
-        rightAngle: ra, leftAngle: la,
-        frameScore: Math.round(maxVel * 300),
-        punchCount: punchCountRef.current,
-        maxVel,
-      });
+    // Only update debug when values actually change
+    const newDbg = {
+      move, rightVel: Math.round(rv * 1000) / 1000, leftVel: Math.round(lv * 1000) / 1000,
+      rightAngle: Math.round(ra), leftAngle: Math.round(la),
+      frameScore: Math.round(maxVel * 300),
+      punchCount: punchCountRef.current,
+      maxVel: Math.round(maxVel * 1000) / 1000,
+    };
+    if (JSON.stringify(newDbg) !== JSON.stringify(lastDebugRef.current)) {
+      lastDebugRef.current = newDbg;
+      setDebug(newDbg);
     }
   }, []); // isTrainingRef used instead of isTraining state
 
