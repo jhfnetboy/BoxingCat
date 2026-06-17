@@ -223,17 +223,6 @@ function App() {
         <CatViewer state={catState} onClick={() => {}} message={message} />
       </div>
 
-      {/* Cat House — bottom */}
-      <div className="cat-house" onClick={(e) => e.stopPropagation()}>
-        <div className="cat-house-buttons">
-          <button className="ch-btn primary" onClick={handleOpenTraining}>🥊 Training</button>
-          <button className="ch-btn" onClick={() => setCatState("idle")}>😺 Idle</button>
-          <button className="ch-btn" onClick={() => setCatState("walking")}>🚶 Walk</button>
-          <button className="ch-btn" onClick={() => setCatState("excited")}>⭐ Excited</button>
-          <button className="ch-btn" onClick={() => setCatState("sleeping")}>😴 Sleep</button>
-        </div>
-      </div>
-
       {/* Right-click context menu */}
       {showMenu && (
         <div className="context-menu" onClick={(e) => e.stopPropagation()}>
