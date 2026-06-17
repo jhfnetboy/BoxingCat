@@ -46,4 +46,3 @@ Thumbs.db
 
 # Tauri
 src-tauri/target/
-src-tauri/icons/
