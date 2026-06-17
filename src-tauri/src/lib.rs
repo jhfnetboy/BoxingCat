@@ -52,9 +52,9 @@ fn hide_main_window(window: tauri::Window) {
 #[tauri::command]
 fn open_training_window(app: tauri::AppHandle) -> Result<(), String> {
     use tauri::{Manager, WebviewWindowBuilder};
-    // Close existing training window if any
+    // Destroy previous training window if it exists (stale ref after user close)
     if let Some(w) = app.get_webview_window("training") {
-        let _ = w.close();
+        let _ = w.destroy();
     }
     WebviewWindowBuilder::new(
         &app,
@@ -76,7 +76,7 @@ fn open_training_window(app: tauri::AppHandle) -> Result<(), String> {
 fn close_training_window(app: tauri::AppHandle) -> Result<(), String> {
     use tauri::Manager;
     if let Some(w) = app.get_webview_window("training") {
-        let _ = w.close();
+        let _ = w.destroy();
     }
     Ok(())
 }
@@ -96,8 +96,12 @@ pub fn run() {
         .on_window_event(|window, event| {
             #[cfg(target_os = "macos")]
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                hide_window_to_dock(window.clone());
-                api.prevent_close();
+                // Only prevent close on main window (hide to dock).
+                // Training window should close normally.
+                if window.label() == "main" {
+                    hide_window_to_dock(window.clone());
+                    api.prevent_close();
+                }
             }
             #[cfg(not(target_os = "macos"))]
             let _ = (window, event);

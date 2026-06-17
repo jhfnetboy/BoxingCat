@@ -51,7 +51,7 @@ html, body, #root {
   backdrop-filter: blur(4px);
 }
 
-/* Dev controls — temporary */
+/* Dev controls — bottom of cat window */
 .dev-controls {
   position: absolute;
   bottom: 8px;
@@ -60,6 +60,8 @@ html, body, #root {
   display: flex;
   gap: 6px;
   z-index: 10;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .dev-controls button {
