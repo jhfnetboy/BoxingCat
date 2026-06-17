@@ -58,8 +58,8 @@ function App() {
 
   const onLandmarks = useCallback((result: PoseLandmarkerResult) => {
     frameIdxRef.current++;
-    // Throttle skeleton re-render to every 3 frames
-    if (frameIdxRef.current % 3 === 0) setPoseResult(result);
+    // Throttle skeleton re-render to every 5 frames
+    if (frameIdxRef.current % 5 === 0) setPoseResult(result);
 
     if (!isTrainingRef.current) return; // use ref to avoid stale closure
 
@@ -89,7 +89,7 @@ function App() {
     // Jitter: 1-2 frames of random "punch". Real punch: 5+ frames.
     // Require 3 consecutive frames of punch detection before counting.
     const PUNCH_COOLDOWN = 40;
-    const MIN_CONSECUTIVE = 3;
+    const MIN_CONSECUTIVE = 2;
     const maxVel = Math.max(rv, lv);
 
     if (punchCooldownRef.current > 0) punchCooldownRef.current--;
@@ -115,8 +115,8 @@ function App() {
     }
     wasPunchingRef.current = isPunch;
 
-    // Throttle UI updates to every 5 frames (avoids React overload)
-    if (frameIdxRef.current % 5 === 0) {
+    // Throttle UI updates to every 15 frames (~0.5s) to stop flicker
+    if (frameIdxRef.current % 15 === 0) {
       setDebug({
         move, rightVel: rv, leftVel: lv,
         rightAngle: ra, leftAngle: la,

@@ -35,7 +35,7 @@ export function velocity(prev: Landmark | undefined, curr: Landmark): number {
 // ── Elbow extension based classifier ────────────────────────────────────
 
 /** Degrees/frame elbow must extend. Jitter: ~2-5°/f. Real punch: ~10-20°/f. */
-const ELBOW_EXTEND_SPEED = 8.0;
+const ELBOW_EXTEND_SPEED = 5.0;
 
 /** Minimum arm extension angle for a "straight" punch (jab/cross) */
 const STRAIGHT_ARM = 130;
