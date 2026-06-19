@@ -93,7 +93,7 @@ fn open_pet_window(app: tauri::AppHandle) -> Result<(), String> {
         tauri::WebviewUrl::App("/pet.html".into()),
     )
     .title("BoxingCat Pet")
-    .inner_size(300.0, 300.0)
+    .inner_size(400.0, 600.0)
     .resizable(false)
     .transparent(true)
     .decorations(false)

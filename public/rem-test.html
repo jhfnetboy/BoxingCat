@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Rem Live2D</title>
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  canvas { display: block; cursor: pointer; }
+</style>
+</head>
+<body>
+<canvas id="live2d" width="400" height="600"></canvas>
+
+<script src="/vendor/live2dcubismcore.min.js"></script>
+<script src="/vendor/live2d.min.js"></script>
+<script src="/vendor/pixi.min.js"></script>
+<script src="/vendor/cubism2.min.js"></script>
+<script>
+(function() {
+var canvas = document.getElementById("live2d");
+var app = new PIXI.Application({ view: canvas, width: 400, height: 600, backgroundAlpha: 0 });
+var statusEl = null; // no debug overlay
+
+PIXI.live2d.Live2DModel.from("/assets/live2d/rem/rem.model.json", { autoInteract: true }).then(function(model) {
+  model.anchor.set(0.5, 0.5);
+  model.position.set(200, 300);
+  var s = Math.min(400 / model.width, 600 / model.height) * 0.8;
+  model.scale.set(s);
+  app.stage.addChild(model);
+
+  // Click anywhere on canvas → try tap_body
+  canvas.addEventListener("click", function(e) {
+    var rect = canvas.getBoundingClientRect();
+    var x = e.clientX - rect.left;
+    var y = e.clientY - rect.top;
+    // Convert to model local coords
+    var local = model.toLocal(new PIXI.Point(x, y));
+    // Check hit areas
+    if (model.hitTest(local.x, local.y)) {
+      model.motion("tap_body");
+    }
+  });
+
+  // Also use pixi-live2d-display's built-in hit event
+  model.on("hit", function(areas) {
+    if (areas.indexOf("body") >= 0 || areas.indexOf("head") >= 0) {
+      model.motion("tap_body");
+    }
+  });
+}).catch(function(e) {
+  console.error("Rem load error:", e);
+});
+})();
+</script>
+</body>
+</html>

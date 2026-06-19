@@ -31,10 +31,10 @@ function App() {
 
   const [catState, setCatState] = useState<CatState>("idle");
   const [catFood, setCatFood] = useState(0);
-  type PetType = "calico" | "dancer";
-  const PET_TYPES: PetType[] = ["calico", "dancer"];
+  type PetType = "calico" | "dancer" | "rem";
+  const PET_TYPES: PetType[] = ["calico", "dancer", "rem"];
   const PET_LABELS: Record<PetType, string> = {
-    calico: "🐱 Calico APNG", dancer: "💃 Dancer 帧动画",
+    calico: "🐱 Calico APNG", dancer: "💃 Dancer 帧动画", rem: "💙 Rem Live2D",
   };
   const [petType, setPetType] = useState<PetType>("calico");
   const [agility] = useState(10);
