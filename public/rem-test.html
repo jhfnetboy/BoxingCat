@@ -24,29 +24,32 @@ var statusEl = null; // no debug overlay
 PIXI.live2d.Live2DModel.from("/assets/live2d/rem/rem.model.json", { autoInteract: true }).then(function(model) {
   model.anchor.set(0.5, 0.5);
   model.position.set(200, 300);
-  var s = Math.min(400 / model.width, 600 / model.height) * 0.8;
-  model.scale.set(s);
+  var baseScale = Math.min(400 / model.width, 600 / model.height) * 0.8;
+  model.scale.set(baseScale);
   app.stage.addChild(model);
 
-  // Click anywhere on canvas → try tap_body
-  canvas.addEventListener("click", function(e) {
-    var rect = canvas.getBoundingClientRect();
-    var x = e.clientX - rect.left;
-    var y = e.clientY - rect.top;
-    // Convert to model local coords
-    var local = model.toLocal(new PIXI.Point(x, y));
-    // Check hit areas
-    if (model.hitTest(local.x, local.y)) {
-      model.motion("tap_body");
-    }
+  // --- Drag to move pet | Click to interact ---
+  var dragging = false, dragOfs = { x: 0, y: 0 }, startPos = { x: 0, y: 0 };
+
+  model.on("pointerdown", function(e) {
+    dragging = true;
+    startPos.x = model.x; startPos.y = model.y;
+    dragOfs.x = e.data.global.x - model.x;
+    dragOfs.y = e.data.global.y - model.y;
   });
 
-  // Also use pixi-live2d-display's built-in hit event
-  model.on("hit", function(areas) {
-    if (areas.indexOf("body") >= 0 || areas.indexOf("head") >= 0) {
-      model.motion("tap_body");
-    }
+  model.on("pointermove", function(e) {
+    if (!dragging) return;
+    model.position.x = e.data.global.x - dragOfs.x;
+    model.position.y = e.data.global.y - dragOfs.y;
   });
+
+  model.on("pointerup", function() {
+    var dist = Math.sqrt(Math.pow(model.x - startPos.x, 2) + Math.pow(model.y - startPos.y, 2));
+    if (dist < 4) model.motion("tap_body"); // click, not drag
+    dragging = false;
+  });
+  model.on("pointerupoutside", function() { dragging = false; });
 }).catch(function(e) {
   console.error("Rem load error:", e);
 });
