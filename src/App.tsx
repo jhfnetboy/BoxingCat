@@ -272,6 +272,8 @@ function App() {
   // ── CAT WINDOW RENDER ────────────────────────────────────────────────
   return (
     <div className="app-container" onContextMenu={handleContextMenu} onClick={() => setShowMenu(false)}>
+      {/* Drag handle */}
+      <div data-tauri-drag-region style={{ height: 22, width: "100%", cursor: "grab", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.2)", fontSize: 10, userSelect: "none" }}>⋮⋮ drag ⋮⋮</div>
       {/* HUD: cat food + agility, top-right */}
       <div className="cat-hud">
         <span className="hud-badge">🍖 {catFood}</span>
