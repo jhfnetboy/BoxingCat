@@ -28,8 +28,7 @@ node_modules/
 # Build output
 dist/
 
-# Reference repos (cloned for analysis, not part of our project)
-reference-repos/
+# Reference repos — managed as git submodules (tracked via .gitmodules)
 
 # OS
 .DS_Store

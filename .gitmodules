@@ -1,0 +1,39 @@
+[submodule "reference-repos/pet-forge"]
+	path = reference-repos/pet-forge
+	url = https://github.com/rullerzhou-afk/pet-forge.git
+[submodule "reference-repos/clawd-on-desk"]
+	path = reference-repos/clawd-on-desk
+	url = https://github.com/rullerzhou-afk/clawd-on-desk.git
+[submodule "reference-repos/bongo-cat-next"]
+	path = reference-repos/bongo-cat-next
+	url = https://github.com/liwenka1/bongo-cat-next.git
+[submodule "reference-repos/desktop-homunculus"]
+	path = reference-repos/desktop-homunculus
+	url = https://github.com/not-elm/desktop-homunculus.git
+[submodule "reference-repos/hiyori"]
+	path = reference-repos/hiyori
+	url = https://github.com/devjiro76/hiyori.git
+[submodule "reference-repos/oc-claw"]
+	path = reference-repos/oc-claw
+	url = https://github.com/rainnoon/oc-claw.git
+[submodule "reference-repos/tauri-live2d"]
+	path = reference-repos/tauri-live2d
+	url = https://github.com/itxve/tauri-live2d.git
+[submodule "reference-repos/claude-pet"]
+	path = reference-repos/claude-pet
+	url = https://github.com/Carliber/claude-pet.git
+[submodule "reference-repos/daidai-live2d-pet"]
+	path = reference-repos/daidai-live2d-pet
+	url = https://github.com/Rosa134/daidai-live2d-pet.git
+[submodule "reference-repos/codepet"]
+	path = reference-repos/codepet
+	url = https://github.com/jnMetaCode/codepet.git
+[submodule "reference-repos/MiniCPM-Desk-Pet"]
+	path = reference-repos/MiniCPM-Desk-Pet
+	url = https://github.com/OpenBMB/MiniCPM-Desk-Pet.git
+[submodule "reference-repos/DyberPet"]
+	path = reference-repos/DyberPet
+	url = https://github.com/ChaozhongLiu/DyberPet.git
+[submodule "reference-repos/BANDORI-PET-REV"]
+	path = reference-repos/BANDORI-PET-REV
+	url = https://github.com/HELPMEEADICE/BANDORI-PET-REV.git
