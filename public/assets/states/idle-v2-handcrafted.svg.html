@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>BoxingCat · idle v2 (hand-crafted)</title>
+<style>
+  :root {
+    --breath-period: 4.8s;
+    --breath-min: 0.97;
+    --breath-max: 1.02;
+    --blink-min-gap: 3000;
+    --blink-max-gap: 7000;
+    --blink-duration: 120;
+    --body-fill: #F5F5F0;
+    --body-stroke: #D4CFC8;
+    --ear-inner: #F0D5D5;
+    --nose: #FFB5B5;
+    --eye-fill: #4A7C96;
+    --eye-shine: #FFFFFF;
+    --whisker: #D4CFC8;
+  }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  #stage {
+    width: 300px;
+    height: 300px;
+  }
+
+  /* 呼吸动画 */
+  #pet {
+    transform-origin: 150px 200px;
+    animation: breathe var(--breath-period) ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%   { transform: scale(var(--breath-min)); }
+    50%  { transform: scale(var(--breath-max)); }
+    100% { transform: scale(var(--breath-min)); }
+  }
+
+  /* 眨眼 */
+  .eye-l, .eye-r {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .blink .eye-l,
+  .blink .eye-r {
+    animation: blink 0.15s ease-out;
+  }
+  @keyframes blink {
+    0%   { transform: scaleY(1); }
+    50%  { transform: scaleY(0.05); }
+    100% { transform: scaleY(1); }
+  }
+
+  /* 耳朵微动 */
+  .ear-l, .ear-r {
+    transform-box: fill-box;
+    transform-origin: bottom center;
+  }
+  .ear-twitch .ear-l {
+    animation: ear-twitch-l 0.3s ease-out;
+  }
+  .ear-twitch .ear-r {
+    animation: ear-twitch-r 0.3s ease-out;
+  }
+  @keyframes ear-twitch-l {
+    0%   { transform: rotate(0deg); }
+    30%  { transform: rotate(-8deg); }
+    100% { transform: rotate(0deg); }
+  }
+  @keyframes ear-twitch-r {
+    0%   { transform: rotate(0deg); }
+    30%  { transform: rotate(8deg); }
+    100% { transform: rotate(0deg); }
+  }
+</style>
+</head>
+<body>
+
+<svg id="stage" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <g id="pet" transform-origin="150 200">
+
+    <!-- ====== 大耳朵 (Devon Rex 标志性特征) ====== -->
+
+    <!-- 左耳外层 -->
+    <ellipse class="ear-l" cx="85" cy="70" rx="42" ry="55"
+      fill="var(--body-fill)" stroke="var(--body-stroke)" stroke-width="2"
+      transform="rotate(-20 85 70)" />
+
+    <!-- 左耳内层 -->
+    <ellipse class="ear-l-inner" cx="88" cy="72" rx="25" ry="35"
+      fill="var(--ear-inner)"
+      transform="rotate(-20 88 72)" />
+
+    <!-- 右耳外层 -->
+    <ellipse class="ear-r" cx="215" cy="70" rx="42" ry="55"
+      fill="var(--body-fill)" stroke="var(--body-stroke)" stroke-width="2"
+      transform="rotate(20 215 70)" />
+
+    <!-- 右耳内层 -->
+    <ellipse class="ear-r-inner" cx="212" cy="72" rx="25" ry="35"
+      fill="var(--ear-inner)"
+      transform="rotate(20 212 72)" />
+
+    <!-- ====== 头部 ====== -->
+    <ellipse cx="150" cy="125" rx="65" ry="50"
+      fill="var(--body-fill)" stroke="var(--body-stroke)" stroke-width="2" />
+
+    <!-- ====== 脸部细节 (Devon Rex: 大眼 + 短嘴) ====== -->
+
+    <!-- 左眼 -->
+    <ellipse class="eye-l" cx="125" cy="118" rx="14" ry="16"
+      fill="var(--eye-fill)" />
+    <!-- 左眼高光 -->
+    <ellipse cx="129" cy="112" rx="5" ry="5"
+      fill="var(--eye-shine)" />
+
+    <!-- 右眼 -->
+    <ellipse class="eye-r" cx="175" cy="118" rx="14" ry="16"
+      fill="var(--eye-fill)" />
+    <!-- 右眼高光 -->
+    <ellipse cx="179" cy="112" rx="5" ry="5"
+      fill="var(--eye-shine)" />
+
+    <!-- 鼻子 (小三角) -->
+    <polygon points="150,133 145,139 155,139"
+      fill="var(--nose)" />
+
+    <!-- 嘴巴 -->
+    <path d="M145 139 Q150 147 150 139 Q150 147 155 139"
+      fill="none" stroke="var(--body-stroke)" stroke-width="1.5"
+      stroke-linecap="round" />
+
+    <!-- ====== 胡须 ====== -->
+    <g stroke="var(--whisker)" stroke-width="1" stroke-linecap="round" opacity="0.6">
+      <!-- 左胡须 -->
+      <line x1="110" y1="133" x2="55" y2="125" />
+      <line x1="110" y1="137" x2="52" y2="137" />
+      <line x1="110" y1="141" x2="55" y2="150" />
+      <!-- 右胡须 -->
+      <line x1="190" y1="133" x2="245" y2="125" />
+      <line x1="190" y1="137" x2="248" y2="137" />
+      <line x1="190" y1="141" x2="245" y2="150" />
+    </g>
+
+    <!-- ====== 身体 ====== -->
+    <ellipse cx="150" cy="205" rx="52" ry="60"
+      fill="var(--body-fill)" stroke="var(--body-stroke)" stroke-width="2" />
+
+    <!-- ====== 前爪 ====== -->
+    <ellipse cx="125" cy="255" rx="16" ry="10"
+      fill="var(--body-fill)" stroke="var(--body-stroke)" stroke-width="1.5" />
+    <ellipse cx="175" cy="255" rx="16" ry="10"
+      fill="var(--body-fill)" stroke="var(--body-stroke)" stroke-width="1.5" />
+
+    <!-- ====== 尾巴 (绕到身前) ====== -->
+    <path d="M198 220 Q240 230 235 260 Q230 275 210 270"
+      fill="none" stroke="var(--body-fill)" stroke-width="14"
+      stroke-linecap="round" />
+    <path d="M198 220 Q240 230 235 260 Q230 275 210 270"
+      fill="none" stroke="var(--body-stroke)" stroke-width="14.5"
+      stroke-linecap="round" opacity="0.3" />
+
+  </g>
+</svg>
+
+<script>
+  // 眨眼逻辑
+  const pet = document.getElementById('pet');
+  let blinkTimer;
+
+  function scheduleBlink() {
+    const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--blink-min-gap').trim())
+              + Math.random() * (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--blink-max-gap').trim())
+              - parseInt(getComputedStyle(document.documentElement).getPropertyValue('--blink-min-gap').trim()));
+    blinkTimer = setTimeout(() => {
+      pet.classList.add('blink');
+      setTimeout(() => {
+        pet.classList.remove('blink');
+        scheduleBlink();
+      }, 150);
+    }, gap);
+  }
+
+  // 耳朵微动（随机）
+  let earTimer;
+  function scheduleEarTwitch() {
+    const gap = 4000 + Math.random() * 8000;
+    earTimer = setTimeout(() => {
+      pet.classList.add('ear-twitch');
+      setTimeout(() => {
+        pet.classList.remove('ear-twitch');
+        scheduleEarTwitch();
+      }, 300);
+    }, gap);
+  }
+
+  scheduleBlink();
+  scheduleEarTwitch();
+</script>
+
+</body>
+</html>

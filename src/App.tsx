@@ -31,6 +31,12 @@ function App() {
 
   const [catState, setCatState] = useState<CatState>("idle");
   const [catFood, setCatFood] = useState(0);
+  type PetType = "calico" | "dancer";
+  const PET_TYPES: PetType[] = ["calico", "dancer"];
+  const PET_LABELS: Record<PetType, string> = {
+    calico: "🐱 Calico APNG", dancer: "💃 Dancer 帧动画",
+  };
+  const [petType, setPetType] = useState<PetType>("calico");
   const [agility] = useState(10);
   const [message, setMessage] = useState("🐱 Meow!");
   const [showMenu, setShowMenu] = useState(false);
@@ -178,10 +184,25 @@ function App() {
       case "excited": setCatState("excited"); break;
       case "sleeping": setCatState("sleeping"); break;
       case "hide": invoke("hide_main_window").catch(() => {}); break;
+      case "swap": {
+        const idx = PET_TYPES.indexOf(petType);
+        setPetType(PET_TYPES[(idx + 1) % PET_TYPES.length]);
+        break;
+      }
     }
-  }, [handleOpenTraining]);
+  }, [handleOpenTraining, petType]);
 
   useEffect(() => { if (showMenu) { const t = setTimeout(() => setShowMenu(false), 4000); return () => clearTimeout(t); } }, [showMenu]);
+
+  // Auto-open pet window on startup (SVG pet test)
+  useEffect(() => {
+    if (!isTrainingWindow) {
+      console.log("[BoxingCat] Opening pet window...");
+      invoke("open_pet_window")
+        .then(() => console.log("[BoxingCat] Pet window opened"))
+        .catch((e) => console.error("[BoxingCat] Pet window failed:", e));
+    }
+  }, [isTrainingWindow]);
 
   // Auto-idle
   useEffect(() => {
@@ -259,7 +280,7 @@ function App() {
 
       {/* The cat — positioned left side */}
       <div className="cat-area" onClick={(e) => { e.stopPropagation(); setCatState("excited"); setCatFood((f) => f + 1); setMessage("🐱 Meow! +1 🍖"); setTimeout(() => setCatState("idle"), 2000); }}>
-        <CatViewer state={catState} onClick={() => {}} message={message} />
+        <CatViewer state={catState} petType={petType} onClick={() => {}} message={message} />
       </div>
 
       {/* Right-click context menu */}
@@ -270,6 +291,9 @@ function App() {
           <div className="ctx-item" onClick={() => handleMenuAction("walking")}>🚶 Walk</div>
           <div className="ctx-item" onClick={() => handleMenuAction("excited")}>⭐ Excited</div>
           <div className="ctx-item" onClick={() => handleMenuAction("sleeping")}>😴 Sleep</div>
+          <div className="ctx-item" onClick={() => handleMenuAction("swap")}>
+            🔄 Swap Pet ({PET_LABELS[petType]})
+          </div>
           <div className="ctx-sep" />
           <div className="ctx-item" onClick={() => handleMenuAction("hide")}>👋 Hide to Dock</div>
         </div>

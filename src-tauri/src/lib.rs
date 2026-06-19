@@ -81,6 +81,31 @@ fn close_training_window(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn open_pet_window(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri::{Manager, WebviewWindowBuilder};
+    if let Some(w) = app.get_webview_window("pet") {
+        let _ = w.destroy();
+    }
+    WebviewWindowBuilder::new(
+        &app,
+        "pet",
+        tauri::WebviewUrl::App("/pet.html".into()),
+    )
+    .title("BoxingCat Pet")
+    .inner_size(300.0, 300.0)
+    .resizable(false)
+    .transparent(true)
+    .decorations(false)
+    .always_on_top(true)
+    .skip_taskbar(true)
+    .shadow(false)
+    .visible(true)
+    .build()
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 // ── App Entry ───────────────────────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -92,6 +117,7 @@ pub fn run() {
             hide_main_window,
             open_training_window,
             close_training_window,
+            open_pet_window,
         ])
         .on_window_event(|window, event| {
             #[cfg(target_os = "macos")]
