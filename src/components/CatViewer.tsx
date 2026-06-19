@@ -29,7 +29,7 @@ export default function CatViewer({ state, petType, onClick, message }: CatViewe
   const petSrc = CALICO_MAP[state] || "/assets/states/calico-idle.apng";
 
   return (
-    <div className="cat-container" onClick={onClick}>
+    <div className="cat-container" onClick={onClick} data-tauri-drag-region>
       <div
         style={{
           width: 266,

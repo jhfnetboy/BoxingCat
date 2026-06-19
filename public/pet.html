@@ -5,11 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BoxingCat Pet</title>
   <style>
-    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
-    iframe { border: none; background: transparent; width: 100%; height: 100%; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; display: flex; align-items: center; justify-content: center; cursor: grab; }
+    canvas { display: block; }
+    img { image-rendering: pixelated; }
   </style>
 </head>
-<body>
-  <iframe src="/rem-test.html"></iframe>
+<body data-tauri-drag-region>
+<canvas id="live2d" width="400" height="600"></canvas>
+
+<script src="/vendor/live2dcubismcore.min.js"></script>
+<script src="/vendor/live2d.min.js"></script>
+<script src="/vendor/pixi.min.js"></script>
+<script src="/vendor/cubism2.min.js"></script>
+<script>
+(function() {
+var canvas = document.getElementById("live2d");
+var app = new PIXI.Application({ view: canvas, width: 400, height: 600, backgroundAlpha: 0 });
+
+PIXI.live2d.Live2DModel.from("/assets/live2d/rem/rem.model.json", { autoInteract: true }).then(function(model) {
+  model.anchor.set(0.5, 0.5);
+  model.position.set(200, 300);
+  var s = Math.min(400 / model.width, 600 / model.height) * 0.8;
+  model.scale.set(s);
+  app.stage.addChild(model);
+
+  model.on("pointerdown", function() { canvas.style.cursor = "grabbing"; });
+  model.on("pointerup", function() { canvas.style.cursor = "grab"; model.motion("tap_body"); });
+}).catch(function(e) { console.error("Rem:", e); });
+})();
+</script>
 </body>
 </html>

@@ -28,28 +28,15 @@ PIXI.live2d.Live2DModel.from("/assets/live2d/rem/rem.model.json", { autoInteract
   model.scale.set(baseScale);
   app.stage.addChild(model);
 
-  // --- Drag to move pet | Click to interact ---
-  var dragging = false, dragOfs = { x: 0, y: 0 }, startPos = { x: 0, y: 0 };
-
-  model.on("pointerdown", function(e) {
-    dragging = true;
-    startPos.x = model.x; startPos.y = model.y;
-    dragOfs.x = e.data.global.x - model.x;
-    dragOfs.y = e.data.global.y - model.y;
+  // --- Simple tap to interact ---
+  var tapTimeout;
+  model.on("pointerdown", function() {
+    tapTimeout = setTimeout(function() { model.motion("tap_body"); }, 200);
   });
-
-  model.on("pointermove", function(e) {
-    if (!dragging) return;
-    model.position.x = e.data.global.x - dragOfs.x;
-    model.position.y = e.data.global.y - dragOfs.y;
-  });
-
   model.on("pointerup", function() {
-    var dist = Math.sqrt(Math.pow(model.x - startPos.x, 2) + Math.pow(model.y - startPos.y, 2));
-    if (dist < 4) model.motion("tap_body"); // click, not drag
-    dragging = false;
+    clearTimeout(tapTimeout);
+    model.motion("tap_body");
   });
-  model.on("pointerupoutside", function() { dragging = false; });
 }).catch(function(e) {
   console.error("Rem load error:", e);
 });
