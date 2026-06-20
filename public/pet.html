@@ -5,12 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BoxingCat Pet</title>
   <style>
-    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; display: flex; align-items: center; justify-content: center; }
-    canvas { display: block; cursor: grab; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; display: flex; flex-direction: column; }
+    .drag-bar {
+      height: 22px; width: 100%; cursor: grab;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.25); font-size: 10px; user-select: none;
+      background: rgba(128,128,128,0.06);
+    }
+    .drag-bar:hover { color: rgba(255,255,255,0.5); }
+    .pet-content { flex: 1; display: flex; align-items: center; justify-content: center; }
+    canvas { display: block; }
   </style>
 </head>
 <body>
+<div class="drag-bar" data-tauri-drag-region>⋮⋮ drag ⋮⋮</div>
+<div class="pet-content">
 <canvas id="live2d" width="400" height="600"></canvas>
+</div>
 
 <script src="/vendor/live2dcubismcore.min.js"></script>
 <script src="/vendor/live2d.min.js"></script>
@@ -21,26 +32,10 @@
 var canvas = document.getElementById("live2d");
 var app = new PIXI.Application({ view: canvas, width: 400, height: 600, backgroundAlpha: 0 });
 
-// ── Tauri window drag via startDragging() ──
-var isDragging = false;
-var moved = false;
-
-canvas.addEventListener("mousedown", function(e) {
-  e.preventDefault();
-  moved = false;
-  isDragging = true;
-  try {
-    // Synchronous call — must happen directly in the mousedown handler
-    window.__TAURI__.window.getCurrentWindow().startDragging();
-  } catch(_) {}
-  isDragging = false;
-  if (!moved) {
-    if (window._model) window._model.motion("tap_body");
-  }
+// ── Click to interact ──
+canvas.addEventListener("click", function() {
+  if (window._model) window._model.motion("tap_body");
 });
-
-document.addEventListener("mousemove", function() { if (isDragging) moved = true; });
-document.addEventListener("mouseup", function() { isDragging = false; });
 
 // ── Load Rem ──
 PIXI.live2d.Live2DModel.from("/assets/live2d/rem/rem.model.json", { autoInteract: true }).then(function(model) {

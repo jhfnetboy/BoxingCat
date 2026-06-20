@@ -1,5 +1,4 @@
-import { useState, useCallback } from "react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useState } from "react";
 
 interface CatViewerProps {
   state: "idle" | "walking" | "sleeping" | "excited" | "training";
@@ -29,13 +28,8 @@ export default function CatViewer({ state, petType, onClick, message }: CatViewe
   const isDancer = petType === "dancer";
   const petSrc = CALICO_MAP[state] || "/assets/states/calico-idle.apng";
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault(); // block native image drag
-    getCurrentWindow().startDragging();
-  }, []);
-
   return (
-    <div className="cat-container" onClick={onClick} onMouseDown={handleMouseDown} style={{ cursor: "grab", WebkitUserDrag: "none" } as React.CSSProperties}>
+    <div className="cat-container" onClick={onClick}>
       <div
         style={{
           width: 266,

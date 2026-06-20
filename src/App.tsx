@@ -272,10 +272,25 @@ function App() {
   // ── CAT WINDOW RENDER ────────────────────────────────────────────────
   return (
     <div className="app-container" onContextMenu={handleContextMenu} onClick={() => setShowMenu(false)}>
-      {/* HUD: cat food + agility, top-right */}
-      <div className="cat-hud">
-        <span className="hud-badge">🍖 {catFood}</span>
-        <span className="hud-badge">⚡ {agility}</span>
+      {/* Drag bar + HUD */}
+      <div
+        data-tauri-drag-region
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "2px 8px", cursor: "grab",
+          background: "rgba(255,255,255,0.08)", borderRadius: "6px 6px 0 0",
+          userSelect: "none", WebkitUserDrag: "none",
+        }}
+      >
+        <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 10 }}>⋮⋮ drag ⋮⋮</span>
+        <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <button onClick={(e) => { e.stopPropagation(); handleMenuAction("swap"); }}
+            style={{ background: "rgba(255,255,255,0.12)", border: "none", color: "#fff", fontSize: 11, padding: "1px 6px", borderRadius: 4, cursor: "pointer" }}>
+            🔄 {PET_LABELS[petType]}
+          </button>
+          <span className="hud-badge" style={{ fontSize: 12 }}>🍖 {catFood}</span>
+          <span className="hud-badge" style={{ fontSize: 12 }}>⚡ {agility}</span>
+        </span>
       </div>
 
       {/* The cat — positioned left side */}
