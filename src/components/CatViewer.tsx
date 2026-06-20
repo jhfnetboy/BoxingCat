@@ -30,12 +30,12 @@ export default function CatViewer({ state, petType, onClick, message }: CatViewe
   const petSrc = CALICO_MAP[state] || "/assets/states/calico-idle.apng";
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // Must be called synchronously during the event
+    e.preventDefault(); // block native image drag
     getCurrentWindow().startDragging();
   }, []);
 
   return (
-    <div className="cat-container" onClick={onClick} onMouseDown={handleMouseDown} style={{ cursor: "grab" }}>
+    <div className="cat-container" onClick={onClick} onMouseDown={handleMouseDown} style={{ cursor: "grab", WebkitUserDrag: "none" } as React.CSSProperties}>
       <div
         style={{
           width: 266,
@@ -53,7 +53,8 @@ export default function CatViewer({ state, petType, onClick, message }: CatViewe
             key={imgKey}
             src={petSrc}
             alt="Calico"
-            style={{ width: 266, height: 200, imageRendering: "pixelated" }}
+            draggable="false"
+            style={{ width: 266, height: 200, imageRendering: "pixelated", userSelect: "none", WebkitUserDrag: "none" }}
           />
         )}
       </div>

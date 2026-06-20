@@ -25,14 +25,16 @@ var app = new PIXI.Application({ view: canvas, width: 400, height: 600, backgrou
 var isDragging = false;
 var moved = false;
 
-canvas.addEventListener("mousedown", async function(e) {
+canvas.addEventListener("mousedown", function(e) {
+  e.preventDefault();
   moved = false;
   isDragging = true;
-  try { await window.__TAURI__.window.getCurrentWindow().startDragging(); }
-  catch(_) { /* fallback: try data attribute */ }
+  try {
+    // Synchronous call — must happen directly in the mousedown handler
+    window.__TAURI__.window.getCurrentWindow().startDragging();
+  } catch(_) {}
   isDragging = false;
   if (!moved) {
-    // Short click = interact with model
     if (window._model) window._model.motion("tap_body");
   }
 });
