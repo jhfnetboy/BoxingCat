@@ -47,7 +47,9 @@ export default function CatViewer({ state, petType, onClick, message }: CatViewe
         }}
       >
         {isRem ? (
-          <iframe src="/rem-test.html" style={{ width: 300, height: 450, border: "none", background: "transparent" }} title="Rem" />
+          <iframe src="/rem-test.html" style={{ width: 300, height: 450, border: "none", background: "transparent" }} title="Rem"
+            onContextMenu={(e) => e.preventDefault()}
+          />
         ) : (
           <img
             key={imgKey}
