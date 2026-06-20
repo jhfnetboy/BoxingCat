@@ -274,13 +274,13 @@ function App() {
     <div className="app-container" onContextMenu={handleContextMenu} onClick={() => setShowMenu(false)}>
       {/* Drag bar + HUD */}
       <div
-        data-tauri-drag-region
         style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "2px 8px", cursor: "grab",
           background: "rgba(255,255,255,0.08)", borderRadius: "6px 6px 0 0",
           userSelect: "none", WebkitUserDrag: "none",
-        }}
+          WebkitAppRegion: "drag",
+        } as React.CSSProperties}
       >
         <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 10 }}>⋮⋮ drag ⋮⋮</span>
         <span style={{ display: "flex", gap: 6, alignItems: "center" }}>

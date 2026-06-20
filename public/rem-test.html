@@ -4,12 +4,17 @@
 <meta charset="UTF-8">
 <title>Rem Live2D</title>
 <style>
-  html, body { margin: 0; height: 100%; background: transparent; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  html, body { margin: 0; height: 100%; background: transparent; display: flex; flex-direction: column; overflow: hidden; }
+  .drag-handle { height: 18px; width: 100%; cursor: grab; -webkit-app-region: drag; }
+  .content { flex: 1; display: flex; align-items: center; justify-content: center; }
   canvas { display: block; cursor: pointer; }
 </style>
 </head>
 <body oncontextmenu="return false">
+<div class="drag-handle"></div>
+<div class="content">
 <canvas id="live2d" width="400" height="600"></canvas>
+</div>
 
 <script src="/vendor/live2dcubismcore.min.js"></script>
 <script src="/vendor/live2d.min.js"></script>
