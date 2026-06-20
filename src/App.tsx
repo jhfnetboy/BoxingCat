@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { PhysicalPosition } from "@tauri-apps/api/dpi";
 import CatViewer from "./components/CatViewer";
 import CameraView from "./components/fitness/CameraView";
 import Tutorial from "./components/fitness/Tutorial";
@@ -279,8 +280,24 @@ function App() {
           padding: "2px 8px", cursor: "grab",
           background: "rgba(255,255,255,0.08)", borderRadius: "6px 6px 0 0",
           userSelect: "none", WebkitUserDrag: "none",
-          WebkitAppRegion: "drag",
-        } as React.CSSProperties}
+        }}
+        onMouseDown={async (e) => {
+          e.preventDefault();
+          const w = getCurrentWindow();
+          const startX = e.screenX;
+          const startY = e.screenY;
+          const pos = await w.outerPosition();
+
+          const onMove = (ev: MouseEvent) => {
+            w.setPosition(new PhysicalPosition(pos.x + (ev.screenX - startX), pos.y + (ev.screenY - startY)));
+          };
+          const onUp = () => {
+            document.removeEventListener("mousemove", onMove);
+            document.removeEventListener("mouseup", onUp);
+          };
+          document.addEventListener("mousemove", onMove);
+          document.addEventListener("mouseup", onUp);
+        }}
       >
         <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 10 }}>⋮⋮ drag ⋮⋮</span>
         <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
