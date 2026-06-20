@@ -3,7 +3,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 
 interface CatViewerProps {
   state: "idle" | "walking" | "sleeping" | "excited" | "training";
-  petType: "calico" | "dancer" | "rem";
+  petType: "calico" | "rem";
   onClick: () => void;
   message: string;
 }
@@ -29,9 +29,9 @@ export default function CatViewer({ state, petType, onClick, message }: CatViewe
   const isDancer = petType === "dancer";
   const petSrc = CALICO_MAP[state] || "/assets/states/calico-idle.apng";
 
-  const handleMouseDown = useCallback(async (e: React.MouseEvent) => {
-    // Let the OS start window drag on this element
-    try { await getCurrentWindow().startDragging(); } catch (_) {}
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // Must be called synchronously during the event
+    getCurrentWindow().startDragging();
   }, []);
 
   return (
@@ -48,24 +48,6 @@ export default function CatViewer({ state, petType, onClick, message }: CatViewe
       >
         {isRem ? (
           <iframe src="/rem-test.html" style={{ width: 300, height: 450, border: "none", background: "transparent" }} title="Rem" />
-        ) : isDancer ? (
-          <div className="dancer-sprite" style={{ width: 128, height: 128, position: "relative" }}>
-            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <img
-                key={i}
-                src={`/assets/states/codepet-dancer-f${i}.png`}
-                alt="dancer"
-                style={{
-                  position: "absolute",
-                  width: 128,
-                  height: 128,
-                  imageRendering: "pixelated",
-                  opacity: 0,
-                  animation: `dancerFrames 1.8s steps(1) ${i * 0.2}s infinite`,
-                }}
-              />
-            ))}
-          </div>
         ) : (
           <img
             key={imgKey}
@@ -76,12 +58,6 @@ export default function CatViewer({ state, petType, onClick, message }: CatViewe
         )}
       </div>
       <div className="cat-speech-bubble">{message}</div>
-      <style>{`
-        @keyframes dancerFrames {
-          0%, 100% { opacity: 0; }
-          11.1%, 22.2% { opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 }
