@@ -271,43 +271,39 @@ function App() {
   }
 
   // ── CAT WINDOW RENDER ────────────────────────────────────────────────
-  return (
-    <div className="app-container" onContextMenu={handleContextMenu} onClick={() => setShowMenu(false)}>
-      {/* Drag bar + HUD */}
-      <div
-        style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "2px 8px", cursor: "grab",
-          background: "rgba(255,255,255,0.08)", borderRadius: "6px 6px 0 0",
-          userSelect: "none", WebkitUserDrag: "none",
-        }}
-        onMouseDown={async (e) => {
-          e.preventDefault();
-          const w = getCurrentWindow();
-          const startX = e.screenX;
-          const startY = e.screenY;
-          const pos = await w.outerPosition();
+  // Whole-window drag via Tauri setPosition() — 4px threshold to distinguish click vs drag
+  const dragRef = useRef({ startX: 0, startY: 0, winPos: null as { x: number; y: number } | null, dragging: false, started: false });
+  const handleAppMouseDown = useCallback(async (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    const d = dragRef.current;
+    d.started = true; d.dragging = false;
+    d.startX = e.screenX; d.startY = e.screenY;
+    try { d.winPos = await getCurrentWindow().outerPosition(); } catch { d.started = false; }
+  }, []);
+  const handleAppMouseMove = useCallback((e: React.MouseEvent) => {
+    const d = dragRef.current;
+    if (!d.started || !d.winPos) return;
+    const dx = e.screenX - d.startX, dy = e.screenY - d.startY;
+    if (!d.dragging && Math.abs(dx) + Math.abs(dy) < 4) return;
+    if (!d.dragging) { d.dragging = true; }
+    getCurrentWindow().setPosition(new PhysicalPosition(d.winPos.x + dx, d.winPos.y + dy));
+  }, []);
+  const handleAppMouseUp = useCallback(() => {
+    dragRef.current = { startX: 0, startY: 0, winPos: null, dragging: false, started: false };
+  }, []);
 
-          const onMove = (ev: MouseEvent) => {
-            w.setPosition(new PhysicalPosition(pos.x + (ev.screenX - startX), pos.y + (ev.screenY - startY)));
-          };
-          const onUp = () => {
-            document.removeEventListener("mousemove", onMove);
-            document.removeEventListener("mouseup", onUp);
-          };
-          document.addEventListener("mousemove", onMove);
-          document.addEventListener("mouseup", onUp);
-        }}
-      >
-        <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 10 }}>⋮⋮ drag ⋮⋮</span>
-        <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <button onClick={(e) => { e.stopPropagation(); handleMenuAction("swap"); }}
-            style={{ background: "rgba(255,255,255,0.12)", border: "none", color: "#fff", fontSize: 11, padding: "1px 6px", borderRadius: 4, cursor: "pointer" }}>
-            🔄 {PET_LABELS[petType]}
-          </button>
-          <span className="hud-badge" style={{ fontSize: 12 }}>🍖 {catFood}</span>
-          <span className="hud-badge" style={{ fontSize: 12 }}>⚡ {agility}</span>
-        </span>
+  return (
+    <div className="app-container" onContextMenu={handleContextMenu} onClick={() => setShowMenu(false)}
+      onMouseDown={handleAppMouseDown} onMouseMove={handleAppMouseMove} onMouseUp={handleAppMouseUp}
+      style={{ cursor: "grab" } as React.CSSProperties}>
+      {/* HUD */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "2px 8px", gap: 6 }}>
+        <button onClick={(e) => { e.stopPropagation(); handleMenuAction("swap"); }}
+          style={{ background: "rgba(255,255,255,0.12)", border: "none", color: "#fff", fontSize: 11, padding: "1px 6px", borderRadius: 4, cursor: "pointer" }}>
+          🔄 {PET_LABELS[petType]}
+        </button>
+        <span className="hud-badge">🍖 {catFood}</span>
+        <span className="hud-badge">⚡ {agility}</span>
       </div>
 
       {/* The cat — positioned left side */}

@@ -6,46 +6,66 @@
   <title>BoxingCat Pet</title>
   <style>
     html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; display: flex; flex-direction: column; }
-    .drag-bar {
-      height: 22px; width: 100%; cursor: grab;
-      display: flex; align-items: center; justify-content: center;
-      color: rgba(255,255,255,0.25); font-size: 10px; user-select: none;
-      background: rgba(128,128,128,0.06);
-    }
-    .drag-bar:hover { color: rgba(255,255,255,0.5); }
+    /* 整窗可拖：默认 grab 光标，拖动时 grabbing */
+    body { cursor: grab; }
+    body.dragging { cursor: grabbing; }
     .pet-content { flex: 1; display: flex; align-items: center; justify-content: center; }
     canvas { display: block; }
   </style>
 </head>
 <body>
-<div class="drag-bar">⋮⋮ drag ⋮⋮</div>
 <div class="pet-content">
 <canvas id="live2d" width="400" height="600"></canvas>
 </div>
 
 <script>
-// ── Window drag via Tauri setPosition ──
+// ── 整窗拖拽：窗口任意位置按下并拖动即可移动 pet 窗口 ──
+// 用移动阈值区分「点击角色」与「拖动窗口」：移动 < 阈值视为点击，放行给 Live2D。
 (function() {
-  var bar = document.querySelector(".drag-bar");
-  bar.addEventListener("mousedown", async function(e) {
-    e.preventDefault();
-    var startX = e.screenX, startY = e.screenY;
-    var pos = await window.__TAURI__.window.getCurrentWindow().outerPosition();
-    function onMove(ev) {
-      window.__TAURI__.window.getCurrentWindow().setPosition(
-        new (window.__TAURI__.window.PhysicalPosition || window.__TAURI__.dpi.PhysicalPosition)(
-          pos.x + (ev.screenX - startX),
-          pos.y + (ev.screenY - startY)
-        )
-      );
+  var DRAG_THRESHOLD = 4; // px
+  var started = false, dragging = false, startX = 0, startY = 0, winPos = null, appWin = null;
+
+  function getWin() {
+    var T = window.__TAURI__;
+    return (T && T.window && T.window.getCurrentWindow) ? T.window.getCurrentWindow() : null;
+  }
+  function physPos(x, y) {
+    var T = window.__TAURI__;
+    var P = (T.window && T.window.PhysicalPosition) || (T.dpi && T.dpi.PhysicalPosition);
+    return new P(x, y);
+  }
+
+  document.addEventListener("mousedown", async function(e) {
+    if (e.button !== 0) return; // 仅左键
+    appWin = getWin();
+    if (!appWin) {
+      console.warn("[pet] Tauri API 不可用 — 请确认 tauri.conf.json 已开启 withGlobalTauri");
+      return;
     }
-    function onUp() {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
+    started = true; dragging = false;
+    startX = e.screenX; startY = e.screenY;
+    try {
+      winPos = await appWin.outerPosition();
+    } catch (err) {
+      console.error("[pet] outerPosition 失败:", err);
+      started = false;
     }
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
   });
+
+  document.addEventListener("mousemove", function(e) {
+    if (!started || !winPos) return;
+    var dx = e.screenX - startX, dy = e.screenY - startY;
+    if (!dragging && (Math.abs(dx) + Math.abs(dy)) < DRAG_THRESHOLD) return; // 还算点击
+    if (!dragging) { dragging = true; document.body.classList.add("dragging"); }
+    appWin.setPosition(physPos(winPos.x + dx, winPos.y + dy));
+  });
+
+  function endDrag() {
+    started = false; dragging = false; winPos = null;
+    document.body.classList.remove("dragging");
+  }
+  document.addEventListener("mouseup", endDrag);
+  window.addEventListener("blur", endDrag); // 拖出窗口/失焦时复位
 })();
 </script>
 
