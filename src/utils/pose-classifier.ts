@@ -34,15 +34,15 @@ export function velocity(prev: Landmark | undefined, curr: Landmark): number {
 
 // ── Elbow extension based classifier ────────────────────────────────────
 
-/** Degrees/frame elbow must extend. Jitter: ~2-5°/f. Real punch: ~10-20°/f. */
-const ELBOW_EXTEND_SPEED = 5.0;
+/** Degrees/frame elbow must extend. Jitter: ~2-5°/f. Real punch: ~10-25°/f. */
+const ELBOW_EXTEND_SPEED = 8.0;
 
 /** Minimum arm extension angle for a "straight" punch (jab/cross) */
-const STRAIGHT_ARM = 130;
+const STRAIGHT_ARM = 135;
 
-/** Arm angle range for a hook (bent arm) */
-const HOOK_ANGLE_LO = 40;
-const HOOK_ANGLE_HI = 110;
+/** Arm angle range for a hook (bent arm) — narrower to avoid false positives */
+const HOOK_ANGLE_LO = 50;
+const HOOK_ANGLE_HI = 100;
 
 export function classifyBoxingMove(
   landmarks: Landmark[],
@@ -85,24 +85,26 @@ export function classifyBoxingMove(
 
   // ── Classify based on elbow extension ────────────────────────────
 
-  // Jab/Cross: arm was BENT, now extending rapidly, ending near-straight
-  if (rExtend > ELBOW_EXTEND_SPEED && rAngle > STRAIGHT_ARM && prevRAngle < 120) {
+  // Jab/Cross: arm was significantly BENT, now extending rapidly, ending near-straight
+  // Require prev angle < 110° (arm must have been notably bent — not just adjusting)
+  if (rExtend > ELBOW_EXTEND_SPEED && rAngle > STRAIGHT_ARM && prevRAngle < 110) {
     return "jab";
   }
-  if (lExtend > ELBOW_EXTEND_SPEED && lAngle > STRAIGHT_ARM && prevLAngle < 120) {
+  if (lExtend > ELBOW_EXTEND_SPEED && lAngle > STRAIGHT_ARM && prevLAngle < 110) {
     return "cross";
   }
 
   // Hook: arm extending in bent range + shoulder rotating
   if (rExtend > ELBOW_EXTEND_SPEED &&
       rAngle > HOOK_ANGLE_LO && rAngle < HOOK_ANGLE_HI &&
-      shoulderRot > 5) {
+      shoulderRot > 8) {
     return "hook";
   }
 
-  // Uppercut: arm extending + wrist moving upward
+  // Uppercut: arm extending + wrist moving upward significantly
+  // Require arm was bent and wrist moves up notably
   const rWristUp = prevLandmarks[R_WRIST].y - landmarks[R_WRIST].y;
-  if (rExtend > ELBOW_EXTEND_SPEED * 0.7 && rWristUp > 0.02) {
+  if (rExtend > ELBOW_EXTEND_SPEED * 0.8 && rWristUp > 0.04 && prevRAngle < 110) {
     return "uppercut";
   }
 
