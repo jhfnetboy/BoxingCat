@@ -69,6 +69,12 @@ fn open_training_window(app: tauri::AppHandle) -> Result<(), String> {
     .visible(true)
     .build()
     .map_err(|e| e.to_string())?;
+
+    // Un-float the main cat window so it doesn't cover the training window
+    if let Some(main) = app.get_webview_window("main") {
+        let _ = main.set_always_on_top(false);
+    }
+
     Ok(())
 }
 
@@ -78,7 +84,23 @@ fn close_training_window(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(w) = app.get_webview_window("training") {
         let _ = w.destroy();
     }
+    // Re-float the cat window since training is done
+    if let Some(main) = app.get_webview_window("main") {
+        let _ = main.set_always_on_top(true);
+    }
     Ok(())
+}
+
+#[tauri::command]
+fn toggle_always_on_top(app: tauri::AppHandle) -> Result<bool, String> {
+    use tauri::Manager;
+    if let Some(main) = app.get_webview_window("main") {
+        let current = main.is_always_on_top().unwrap_or(false);
+        let _ = main.set_always_on_top(!current);
+        Ok(!current)
+    } else {
+        Ok(false)
+    }
 }
 
 #[tauri::command]
@@ -118,6 +140,7 @@ pub fn run() {
             open_training_window,
             close_training_window,
             open_pet_window,
+            toggle_always_on_top,
         ])
         .on_window_event(|window, event| {
             #[cfg(target_os = "macos")]

@@ -25,17 +25,18 @@ import "./styles/cat-house.css";
 type CatState = "idle" | "walking" | "sleeping" | "excited" | "training";
 
 function App() {
-  const [isTrainingWindow, setIsTrainingWindow] = useState(false);
-  useEffect(() => {
-    try { setIsTrainingWindow(getCurrentWindow().label === "training"); } catch { /* */ }
-  }, []);
+  // Determine synchronously to avoid flash of wrong UI on training window
+  const [isTrainingWindow] = useState(() => {
+    try { return getCurrentWindow().label === "training"; } catch { return false; }
+  });
 
   const [catState, setCatState] = useState<CatState>("idle");
   const [catFood, setCatFood] = useState(0);
-  type PetType = "calico" | "rem";
-  const PET_TYPES: PetType[] = ["calico", "rem"];
+  type PetType = "calico" | "rem" | "tororo" | "hijiki";
+  const PET_TYPES: PetType[] = ["calico", "rem", "tororo", "hijiki"];
   const PET_LABELS: Record<PetType, string> = {
     calico: "🐱 Calico APNG", rem: "💙 Rem Live2D",
+    tororo: "🤍 Tororo 猫", hijiki: "🖤 Hijiki 猫",
   };
   const [petType, setPetType] = useState<PetType>("calico");
   const [agility] = useState(10);
@@ -95,8 +96,8 @@ function App() {
     // ── Consecutive-frame punch detection ────────────────────────
     // Jitter: 1-2 frames of random "punch". Real punch: 5+ frames.
     // Require 3 consecutive frames of punch detection before counting.
-    const PUNCH_COOLDOWN = 40;
-    const MIN_CONSECUTIVE = 2;
+    const PUNCH_COOLDOWN = 50;
+    const MIN_CONSECUTIVE = 5;
     const maxVel = Math.max(rv, lv);
 
     if (punchCooldownRef.current > 0) punchCooldownRef.current--;
@@ -185,6 +186,7 @@ function App() {
       case "excited": setCatState("excited"); break;
       case "sleeping": setCatState("sleeping"); break;
       case "hide": invoke("hide_main_window").catch(() => {}); break;
+      case "float": invoke("toggle_always_on_top").catch(() => {}); break;
       case "swap": {
         const idx = PET_TYPES.indexOf(petType);
         setPetType(PET_TYPES[(idx + 1) % PET_TYPES.length]);
@@ -322,6 +324,7 @@ function App() {
           <div className="ctx-item" onClick={() => handleMenuAction("swap")}>
             🔄 Swap Pet ({PET_LABELS[petType]})
           </div>
+          <div className="ctx-item" onClick={() => handleMenuAction("float")}>📌 Toggle Float</div>
           <div className="ctx-sep" />
           <div className="ctx-item" onClick={() => handleMenuAction("hide")}>👋 Hide to Dock</div>
         </div>

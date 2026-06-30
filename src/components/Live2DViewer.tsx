@@ -27,7 +27,7 @@ export default function Live2DViewer({ modelPath, width, height }: Live2DViewerP
         setMsg("PixiJS OK, creating app...");
 
         const app = new PIXI.Application({
-          view: canvas,
+          view: canvas!,
           width,
           height,
           backgroundAlpha: 0,

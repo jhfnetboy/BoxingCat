@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Live2D Viewer</title>
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; display: flex; flex-direction: column; overflow: hidden; }
+  .content { flex: 1; display: flex; align-items: center; justify-content: center; }
+  canvas { display: block; cursor: pointer; }
+</style>
+</head>
+<body oncontextmenu="return false">
+<div class="content">
+<canvas id="live2d" width="400" height="600"></canvas>
+</div>
+
+<script src="/vendor/live2dcubismcore.min.js"></script>
+<script src="/vendor/live2d.min.js"></script>
+<script src="/vendor/pixi.min.js"></script>
+<script src="/vendor/cubism2.min.js"></script>
+<script>
+(function () {
+  // ── 通用 Live2D 查看器：?model=<path> 指定模型 ──
+  // 同时提供两种编程入口：
+  //   1) 父窗口 postMessage —— React/语音可发指令命令角色做动作
+  //   2) window.* 全局函数 —— 在控制台直接调试
+  var params = new URLSearchParams(location.search);
+  var MODEL = params.get("model") || "/assets/live2d/rem/rem.model.json";
+
+  var canvas = document.getElementById("live2d");
+  var app = new PIXI.Application({ view: canvas, width: 400, height: 600, backgroundAlpha: 0 });
+
+  PIXI.live2d.Live2DModel.from(MODEL, { autoInteract: true }).then(function (model) {
+    window._model = model;
+    model.anchor.set(0.5, 0.5);
+    model.position.set(200, 300);
+    model.scale.set(Math.min(400 / model.width, 600 / model.height) * 0.9);
+    app.stage.addChild(model);
+
+    // 读取该模型实际拥有的动作分组(cubism2: settings.motions)
+    var groups = {};
+    try {
+      var defs = model.internalModel.settings.motions || {};
+      Object.keys(defs).forEach(function (g) { groups[g] = defs[g].length; });
+    } catch (e) {}
+
+    // ── 播放动作 ──
+    function playMotion(group, index) {
+      try { model.motion(group || "", index); } catch (e) { console.warn("[live2d] motion 失败", e); }
+    }
+    // 随机播放一个"反应"动作:优先 tap_body,否则从非 idle 分组随机取
+    function playRandom() {
+      if (groups["tap_body"]) return playMotion("tap_body");
+      var pool = Object.keys(groups).filter(function (g) { return g !== "idle"; });
+      if (!pool.length) return;
+      var g = pool[Math.floor(Math.random() * pool.length)];
+      playMotion(g, Math.floor(Math.random() * groups[g]));
+    }
+    function playExpression(name) {
+      try { model.expression(name); } catch (e) { console.warn("[live2d] expression 失败", e); }
+    }
+
+    // 暴露为全局,方便控制台 / 父窗口调试
+    window.playMotion = playMotion;
+    window.playRandom = playRandom;
+    window.playExpression = playExpression;
+
+    // 点击角色 → 随机反应动作
+    model.on("pointertap", playRandom);
+
+    // ── 父窗口指令通道(可编程接口)──
+    // postMessage 例: iframe.contentWindow.postMessage({type:'motion', group:'', index:3}, '*')
+    window.addEventListener("message", function (ev) {
+      var d = ev.data || {};
+      if (d.type === "motion") playMotion(d.group, d.index);
+      else if (d.type === "random") playRandom();
+      else if (d.type === "expression") playExpression(d.name);
+      else if (d.type === "scale" && typeof d.value === "number") model.scale.set(d.value);
+    });
+
+    // 加载完成 → 把可用动作清单回报给父窗口
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "live2d-ready", model: MODEL, motions: groups }, "*");
+    }
+    console.log("[live2d] loaded", MODEL, "motions:", groups);
+  }).catch(function (e) {
+    console.error("[live2d] load error:", MODEL, e);
+  });
+})();
+</script>
+</body>
+</html>
